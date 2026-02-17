@@ -7,15 +7,20 @@ Analyse spatiale et temporelle avec visualisations améliorées
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from pathlib import Path
 from modules.data_processing import (
-    load_data, classify_fires, analyze_fires_before_big_fire
+    load_data, classify_fires, analyze_fires_before_big_fire,
+    analyze_parameter_trends, analyze_parameter_correlations_with_big_fire,
+    analyze_global_parameter_correlations
 )
 from modules.visualizations import (
     create_map, create_pie_chart, create_line_chart,
     create_trend_bar, create_scatter_plot, create_temporal_series,
     create_multi_fire_comparison, create_detail_fire_map,
-    create_correlation_analysis_figure, create_correlation_summary_table,
-    create_communes_croissance_map
+    create_correlation_summary_table,
+    create_communes_croissance_map, create_parameter_trends_chart,
+    create_parameter_correlation_chart, create_global_parameter_correlation_chart,
+    PARAM_NAMES
 )
 from modules.export import export_results, export_csv
 
@@ -151,7 +156,9 @@ def main():
     
     # Chargement des données
     try:
-        df = load_data('data/incendies_paca_2015_2022.csv')
+        # Chemin absolu basé sur l'emplacement de app.py
+        csv_path = Path(__file__).parent / 'data' / 'promothee' / 'incendies_paca_2015_2022.csv'
+        df = load_data(str(csv_path))
         
         if len(df) == 0:
             st.error("Aucune donnée valide trouvée dans le fichier CSV")
@@ -334,13 +341,70 @@ def main():
         daily_counts = small_fires_temp.groupby('date_only').size().reset_index(name='Nombre')
         daily_counts['date_only'] = pd.to_datetime(daily_counts['date_only'])
         
-        fig_time = create_temporal_series(daily_counts, selected_fire['date_alerte'], 
-                                          selected_fire['commune'])
-        st.plotly_chart(fig_time, width='stretch')
+        # ===== SECTION 1 : TENDANCES DES PARAMÈTRES ENVIRONNEMENTAUX =====
+        st.markdown("##### Tendances des Paramètres Environnementaux")
+        st.caption("Analyse de l'évolution des conditions environnementales durant les petits incendies")
         
-        # Métriques clés avec delta pour la tendance
+        # Analyser les tendances
+        df_trends, trends_summary = analyze_parameter_trends(small_fires_temp)
+        
+        if len(df_trends) > 0 and len(trends_summary) > 0:
+            # Graphique des tendances
+            fig_params = create_parameter_trends_chart(
+                df_trends, 
+                trends_summary, 
+                selected_fire['commune']
+            )
+            st.plotly_chart(fig_params, use_container_width=True)
+            
+            # Tableau récapitulatif des tendances
+            st.markdown("##### Tableau Récapitulatif des Tendances")
+            
+            # Préparer les données du tableau
+            tableau_data = []
+            for param, stats in trends_summary.items():
+                friendly_name = PARAM_NAMES.get(param, param)
+                tableau_data.append({
+                    'Paramètre': friendly_name,
+                    'Direction': stats['direction'],
+                    'Variation (%)': f"{stats['variation_pct']:+.2f}%"
+                })
+            
+            df_tableau = pd.DataFrame(tableau_data)
+            
+            # Appliquer un style au tableau
+            def color_direction(val):
+                if val == 'Croissance':
+                    return 'background-color: #d4edda; color: #155724; font-weight: bold'
+                elif val == 'Décroissance':
+                    return 'background-color: #f8d7da; color: #721c24; font-weight: bold'
+                elif val == 'Stable':
+                    return 'background-color: #d1ecf1; color: #0c5460; font-weight: bold'
+                else:
+                    return 'background-color: #e2e3e5; color: #383d41'
+            
+            styled_df = df_tableau.style.applymap(
+                color_direction, 
+                subset=['Direction']
+            )
+            
+            st.dataframe(styled_df, use_container_width=True, hide_index=True)
+            
+            # Informations complémentaires
+            st.caption(
+                "**Interprétation** : "
+                "Variation (%) = changement entre la première et dernière période"
+            )
+        else:
+            st.warning("⚠️ Données insuffisantes pour analyser les tendances des paramètres")
+        
+        # ===== SECTION 2 : GRAPHE TEMPOREL =====
+        st.markdown("---")
+        st.markdown("##### Accumulation Temporelle des Incendies")
+        
+        # Métriques clés avec delta pour la tendance - AU-DESSUS DU GRAPHE
         st.markdown("##### Statistiques du Grand Feu")
-        metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+        metric_col1, metric_col2, metric_col3, metric_col4, metric_col5 = st.columns(5)
         with metric_col1:
             st.metric("Petits feux", selected_result['small_fires_count'])
         with metric_col2:
@@ -350,10 +414,20 @@ def main():
             st.metric("Total feux avant", total)
         with metric_col4:
             st.metric("Surface grand feu", f"{selected_fire['surface_ha']:.1f} ha")
+        with metric_col5:
+            tendance = selected_result['trend']
+            st.metric("Tendance", tendance)
         
-        # Tendance
-        tendance = selected_result['trend']
-        st.info(f"**Tendance avant le grand feu** : {tendance}")
+        # Graphe temporel avec tendance et département dans le titre
+        departement = str(selected_fire.get('depart', 'Inconnu'))
+        fig_time = create_temporal_series(
+            daily_counts, 
+            selected_fire['date_alerte'], 
+            selected_fire['commune'],
+            tendance=tendance,
+            departement=departement
+        )
+        st.plotly_chart(fig_time, width='stretch')
     else:
         st.info("Aucun petit feu dans la fenêtre temporelle")
     
@@ -516,32 +590,74 @@ def main():
     
     st.markdown("---")
     
+    # ===== SÉLECTEUR DE DÉPARTEMENT (COMMUN AUX ANALYSES DE CORRÉLATION) =====
+    st.header("Analyses de Corrélation")
+    st.caption("Filtrer les analyses de corrélation par département")
+    
+    # Sélecteur de département pour filtrer TOUTES les analyses de corrélation
+    departements_disponibles = sorted(df['depart'].dropna().astype(str).unique())
+    departements_options = ["Tous"] + departements_disponibles
+    
+    selected_dept = st.selectbox(
+        "Filtrer par département",
+        options=departements_options,
+        index=0,
+        help="Sélectionnez un département spécifique ou 'Tous' pour l'analyse globale. Ce filtre s'applique à toutes les analyses de corrélation ci-dessous.",
+        key='dept_correlation_filter'
+    )
+    
+    # Filtrer les données par département si nécessaire
+    if selected_dept != "Tous":
+        df_filtered_dept = df_filtered[df_filtered['depart'].astype(str) == str(selected_dept)].copy()
+        big_fires_dept = big_fires[big_fires['depart'].astype(str) == str(selected_dept)].copy()
+        
+        # Filtrer aussi analysis_results pour correspondre aux grands feux filtrés
+        filtered_indices = big_fires_dept.index.tolist()
+        analysis_results_dept = [analysis_results[i] for i in filtered_indices if i < len(analysis_results)]
+        
+        # Message informatif
+        nb_feux_dept = len(df_filtered_dept)
+        nb_grands_feux_dept = len(big_fires_dept)
+        st.info(f"🔍 **Filtre actif : Département {selected_dept}** | {nb_feux_dept} incendies totaux | {nb_grands_feux_dept} grands feux")
+    else:
+        df_filtered_dept = df_filtered
+        big_fires_dept = big_fires
+        analysis_results_dept = analysis_results
+        
+
+    st.markdown("---")
+    
     # ========== ANALYSE DE CORRÉLATION ==========
-    st.header("Analyse de Corrélation: Petits Feux → Grands Feux")
+    st.subheader("Analyse de Corrélation: Petits Feux → Grands Feux")
     
-    st.info("""
-    **Analyse statistique de la relation entre petits et grands incendies**
     
-    - **Cross-Correlation** : Mesure la similarité des séries temporelles avec différents décalages
-    - **Granger Causality** : Teste si les petits feux permettent de prédire les grands feux
-    - **Mutual Information** : Quantifie l'information partagée entre les deux types d'incendies
-    """)
     
-    # Créer les visualisations de corrélation
+    # Créer le tableau récapitulatif
     with st.spinner('Calcul des corrélations en cours...'):
         try:
-            correlation_fig = create_correlation_analysis_figure(df_filtered)
-            st.plotly_chart(correlation_fig, width='stretch')
-            
-            st.markdown("---")
-            
             # Tableau récapitulatif
             st.subheader("Résumé des Corrélations")
-            summary_df = create_correlation_summary_table(df_filtered)
+            summary_df = create_correlation_summary_table(df_filtered_dept)
             
-            # Appliquer un style au tableau
+            # Appliquer un style au tableau pour les interprétations
+            def color_interpretation(val):
+                if '🟢' in str(val):  # Vert fort
+                    return 'background-color: #d4edda; color: #155724; font-weight: bold'
+                elif '🟡' in str(val):  # Jaune modéré
+                    return 'background-color: #fff3cd; color: #856404; font-weight: bold'
+                elif '🔵' in str(val):  # Bleu faible
+                    return 'background-color: #d1ecf1; color: #0c5460; font-weight: bold'
+                elif '⚪' in str(val):  # Blanc très faible
+                    return 'background-color: #e2e3e5; color: #383d41; font-weight: bold'
+                return ''
+            
+            styled_df = summary_df.style.applymap(
+                color_interpretation,
+                subset=['Interprétation']
+            )
+            
             st.dataframe(
-                summary_df,
+                styled_df,
                 width='stretch',
                 hide_index=True,
                 height=200
@@ -550,6 +666,109 @@ def main():
         except Exception as e:
             st.error(f"Erreur lors du calcul des corrélations: {str(e)}")
             st.warning("Vérifiez que vous avez suffisamment de données pour l'analyse de corrélation.")
+    
+    st.markdown("---")
+    
+    # ===== CORRÉLATIONS PARAMÈTRES ENVIRONNEMENTAUX → GRANDS FEUX =====
+    st.subheader("Corrélations Paramètres Environnementaux → Grands Feux")
+    st.caption("Analyse globale de la relation entre les conditions environnementales des petits feux et les surfaces des grands feux")
+    
+    with st.spinner('Calcul des corrélations paramétriques...'):
+        # Calculer les corrélations globales (avec filtre département)
+        global_param_corr = analyze_global_parameter_correlations(analysis_results, big_fires, departement=selected_dept)
+        
+        if global_param_corr and any(c['status'] == 'OK' for c in global_param_corr.values()):
+            # Graphique des corrélations
+            fig_global_corr = create_global_parameter_correlation_chart(global_param_corr, departement=selected_dept)
+            st.plotly_chart(fig_global_corr, use_container_width=True)
+            
+            # Tableau des corrélations
+            st.markdown("##### Tableau Détaillé des Corrélations Paramétriques")
+            
+            corr_table_data = []
+            for param, corr_data in global_param_corr.items():
+                if corr_data['status'] == 'OK':
+                    friendly_name = PARAM_NAMES.get(param, param)
+                    
+                    # Calculer la corrélation maximale pour l'interprétation
+                    max_corr = max(
+                        abs(corr_data['pearson']),
+                        abs(corr_data['spearman']),
+                        abs(corr_data['mutual_info'])
+                    )
+                    
+                    # Déterminer l'interprétation
+                    if max_corr >= 0.7:
+                        interpretation = "🟢 Forte"
+                    elif max_corr >= 0.4:
+                        interpretation = "🟡 Modérée"
+                    elif max_corr >= 0.2:
+                        interpretation = "🔵 Faible"
+                    else:
+                        interpretation = "⚪ Très faible"
+                    
+                    # Significativité
+                    pearson_sig = "✓" if corr_data['pearson_pval'] < 0.05 else "✗"
+                    spearman_sig = "✓" if corr_data['spearman_pval'] < 0.05 else "✗"
+                    
+                    corr_table_data.append({
+                        'Paramètre': friendly_name,
+                        'Pearson': f"{corr_data['pearson']:.3f} ({pearson_sig})",
+                        'Spearman': f"{corr_data['spearman']:.3f} ({spearman_sig})",
+                        'Info. Mutuelle': f"{corr_data['mutual_info']:.3f}",
+                        'Moyenne': f"{corr_data['mean_value']:.2f}",
+                        'N échantillons': corr_data['n_samples'],
+                        'Interprétation': interpretation
+                    })
+            
+            df_global_corr_table = pd.DataFrame(corr_table_data)
+            
+            # Style du tableau
+            def color_correlation(val):
+                try:
+                    # Extraire le nombre avant la parenthèse
+                    num_str = val.split('(')[0].strip() if '(' in val else val
+                    num_val = float(num_str)
+                    if abs(num_val) >= 0.7:
+                        return 'background-color: #d4edda; color: #155724; font-weight: bold'
+                    elif abs(num_val) >= 0.4:
+                        return 'background-color: #fff3cd; color: #856404; font-weight: bold'
+                    elif abs(num_val) >= 0.2:
+                        return 'background-color: #d1ecf1; color: #0c5460'
+                    else:
+                        return ''
+                except:
+                    return ''
+            
+            def color_interpretation(val):
+                if "🟢 Forte" in val:
+                    return 'background-color: #d4edda; color: #155724; font-weight: bold; font-size: 1.1em'
+                elif "🟡 Modérée" in val:
+                    return 'background-color: #fff3cd; color: #856404; font-weight: bold; font-size: 1.1em'
+                elif "🔵 Faible" in val:
+                    return 'background-color: #d1ecf1; color: #0c5460; font-weight: bold; font-size: 1.1em'
+                else:
+                    return 'background-color: #e2e3e5; color: #383d41; font-size: 1.1em'
+            
+            styled_global_corr = df_global_corr_table.style.applymap(
+                color_correlation,
+                subset=['Pearson', 'Spearman', 'Info. Mutuelle']
+            ).applymap(
+                color_interpretation,
+                subset=['Interprétation']
+            )
+            
+            st.dataframe(styled_global_corr, use_container_width=True, hide_index=True)
+            
+            # Légende
+            st.caption(
+                "**Légende** : "
+                "**Pearson/Spearman** : ✓ = significatif (p < 0.05), ✗ = non significatif | "
+                "**Info. Mutuelle** : quantification de l'information partagée | "
+                "**N échantillons** : nombre de grands feux analysés"
+            )
+        else:
+            st.warning("⚠️ Données insuffisantes pour calculer les corrélations paramétriques globales.")
     
     st.markdown("---")
     
