@@ -20,6 +20,15 @@ try:
 except ImportError:
     HAS_GEOPANDAS = False
 
+# Mapping des noms de paramètres vers des noms compréhensibles
+PARAM_NAMES = {
+    'mean_NDVI': 'NDVI moyen (Végétation)',
+    'T': 'Température (°C)',
+    'PRELIQ': 'Précipitations (mm)',
+    'HU': 'Humidité (%)',
+    'FF': 'Vitesse du vent (m/s)'
+}
+
 
 def create_map(df: pd.DataFrame, big_fires: pd.DataFrame = None, 
                analysis_results: List[Dict] = None, buffer_radius_km: float = 10) -> go.Figure:
@@ -517,7 +526,7 @@ def create_scatter_plot(df_filtered: pd.DataFrame, commune: str, temporal_window
 
 
 def create_temporal_series(daily_counts: pd.DataFrame, fire_date: pd.Timestamp, 
-                          commune: str) -> go.Figure:
+                          commune: str, tendance: str = None, departement: str = None) -> go.Figure:
     """Crée une série temporelle claire avec cumul"""
     # Calcul du cumul
     daily_counts['Cumul'] = daily_counts['Nombre'].cumsum()
@@ -601,10 +610,17 @@ def create_temporal_series(daily_counts: pd.DataFrame, fire_date: pd.Timestamp,
         borderwidth=2
     )
     
+    # Construire le titre avec tendance et département
+    titre_parts = [f"Tendance: {tendance}" if tendance else None,
+                   commune,
+                   f"Département {departement}" if departement else None]
+    titre_parts = [p for p in titre_parts if p]  # Filtrer les None
+    titre_principal = " - ".join(titre_parts)
+    
     fig.update_layout(
         title={
-            'text': f"Accumulation des Petits Feux avant le Grand Feu - {commune}<br><sub>Fenêtre d'analyse: {date_debut.strftime('%d/%m/%Y')} → {date_fin.strftime('%d/%m/%Y')} ({nb_jours} jours) | {total_feux} petits feux</sub>",
-            'font': {'size': 16, 'color': '#2C3E50', 'family': 'Arial'}
+            'text': f"{titre_principal}<br><sub>Fenêtre d'analyse: {date_debut.strftime('%d/%m/%Y')} → {date_fin.strftime('%d/%m/%Y')} ({nb_jours} jours) | {total_feux} petits feux</sub>",
+            'font': {'size': 16, 'color': "#FF0000", 'family': 'Arial'}
         },
         xaxis=dict(
             title="<b>Date</b>",
@@ -635,6 +651,382 @@ def create_temporal_series(daily_counts: pd.DataFrame, fire_date: pd.Timestamp,
         plot_bgcolor='rgba(248, 248, 248, 0.8)',
         paper_bgcolor='white',
         font=dict(family='Arial', size=11)
+    )
+    
+    return fig
+
+
+def create_parameter_trends_chart(df_trends: pd.DataFrame, trends_summary: Dict, 
+                                   commune: str) -> go.Figure:
+    """
+    Crée un graphique multi-axes pour visualiser les tendances des paramètres
+    environnementaux avant un grand feu
+    
+    Args:
+        df_trends: DataFrame avec les moyennes par période
+        trends_summary: Dict avec les statistiques de tendance
+        commune: Nom de la commune
+    
+    Returns:
+        Figure plotly avec subplots
+    """
+    from plotly.subplots import make_subplots
+    
+    params = [p for p in df_trends.columns if p != 'periode']
+    n_params = len(params)
+    
+    if n_params == 0:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Aucune donnée disponible",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=16)
+        )
+        return fig
+    
+    # Créer subplots (1 ligne, n_params colonnes)
+    fig = make_subplots(
+        rows=1, 
+        cols=n_params,
+        subplot_titles=[PARAM_NAMES.get(param, param) for param in params],
+        horizontal_spacing=0.05
+    )
+    
+    colors = ['#8B0000', '#FA891A', '#6E026F', '#ABDADC', '#2C3E50', '#27AE60', '#E74C3C', '#3498DB']
+    
+    for idx, param in enumerate(params):
+        row = 1
+        col = idx + 1
+        
+        friendly_name = PARAM_NAMES.get(param, param)
+        values = df_trends[param].values
+        periods = df_trends['periode'].values
+        
+        # Ligne avec marqueurs
+        fig.add_trace(
+            go.Scatter(
+                x=periods,
+                y=values,
+                mode='lines+markers',
+                name=friendly_name,
+                line=dict(color=colors[idx % len(colors)], width=3),
+                marker=dict(size=10, line=dict(color='white', width=2)),
+                showlegend=False,
+                hovertemplate=f'<b>{friendly_name}</b><br>Période: %{{x}}<br>Valeur: %{{y:.2f}}<extra></extra>'
+            ),
+            row=row, col=col
+        )
+        
+        # Ajouter ligne de tendance
+        if param in trends_summary:
+            x_num = np.arange(len(values))
+            trend_line = trends_summary[param]['slope'] * x_num + (values[0] - trends_summary[param]['slope'] * 0)
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=periods,
+                    y=trend_line,
+                    mode='lines',
+                    line=dict(color=colors[idx % len(colors)], width=2, dash='dash'),
+                    showlegend=False,
+                    hoverinfo='skip',
+                    opacity=0.5
+                ),
+                row=row, col=col
+            )
+            
+            # Annotation de tendance
+            direction = trends_summary[param]['direction']
+            variation = trends_summary[param]['variation_pct']
+            
+            if direction == "Croissance":
+                arrow_symbol = "↗"
+                color = "#27AE60"
+            elif direction == "Décroissance":
+                arrow_symbol = "↘"
+                color = "#E74C3C"
+            else:
+                arrow_symbol = "→"
+                color = "#95A5A6"
+            
+            fig.add_annotation(
+                text=f"{arrow_symbol} {variation:+.1f}%",
+                xref=f"x{idx+1}", yref=f"y{idx+1}",
+                x=periods[-1], y=values[-1],
+                showarrow=False,
+                font=dict(size=10, color=color, family='Arial Black'),
+                bgcolor='rgba(255, 255, 255, 0.8)',
+                bordercolor=color,
+                borderwidth=1,
+                xanchor='left',
+                xshift=5
+            )
+    
+    # Mise à jour du layout
+    fig.update_xaxes(showgrid=True, gridcolor='rgba(200, 200, 200, 0.3)')
+    fig.update_yaxes(showgrid=True, gridcolor='rgba(200, 200, 200, 0.3)')
+    
+    fig.update_layout(
+        title={
+            'text': f"Tendances des Paramètres Environnementaux - {commune}<br><sub>Évolution avant le grand feu (par période)</sub>",
+            'font': {'size': 16, 'color': '#2C3E50', 'family': 'Arial'}
+        },
+        height=400,
+        plot_bgcolor='rgba(248, 248, 248, 0.8)',
+        paper_bgcolor='white',
+        font=dict(family='Arial', size=11),
+        hovermode='closest'
+    )
+    
+    return fig
+
+
+def create_parameter_correlation_chart(correlations: Dict, commune: str) -> go.Figure:
+    """
+    Crée un graphique des corrélations entre paramètres des petits feux et le grand feu
+    
+    Args:
+        correlations: Dict avec les corrélations pour chaque paramètre
+        commune: Nom de la commune
+    
+    Returns:
+        Figure plotly avec barres groupées
+    """
+    if not correlations:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Aucune donnée disponible",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=16)
+        )
+        return fig
+    
+    # Préparer les données
+    params = []
+    pearson_vals = []
+    spearman_vals = []
+    mi_vals = []
+    
+    for param, corr_data in correlations.items():
+        if corr_data['status'] == 'OK':
+            friendly_name = PARAM_NAMES.get(param, param)
+            params.append(friendly_name)
+            pearson_vals.append(corr_data['pearson'])
+            spearman_vals.append(corr_data['spearman'])
+            mi_vals.append(corr_data['mutual_info'])
+    
+    if not params:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Données insuffisantes",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=16)
+        )
+        return fig
+    
+    # Créer le graphique avec barres groupées
+    fig = go.Figure()
+    
+    # Pearson (corrélation linéaire)
+    fig.add_trace(go.Bar(
+        name='Pearson (Linéaire)',
+        x=params,
+        y=pearson_vals,
+        marker=dict(color='#8B0000'),
+        hovertemplate='<b>%{x}</b><br>Pearson: %{y:.3f}<extra></extra>'
+    ))
+    
+    # Spearman (corrélation monotone)
+    fig.add_trace(go.Bar(
+        name='Spearman (Monotone)',
+        x=params,
+        y=spearman_vals,
+        marker=dict(color='#FA891A'),
+        hovertemplate='<b>%{x}</b><br>Spearman: %{y:.3f}<extra></extra>'
+    ))
+    
+    # Mutual Information
+    fig.add_trace(go.Bar(
+        name='Information Mutuelle',
+        x=params,
+        y=mi_vals,
+        marker=dict(color='#6E026F'),
+        hovertemplate='<b>%{x}</b><br>MI: %{y:.3f}<extra></extra>'
+    ))
+    
+    # Lignes de référence
+    fig.add_hline(y=0, line_dash="dash", line_color="gray", line_width=1)
+    fig.add_hline(y=0.5, line_dash="dot", line_color="green", line_width=1, 
+                  annotation_text="Corrélation modérée", annotation_position="right")
+    fig.add_hline(y=-0.5, line_dash="dot", line_color="red", line_width=1)
+    
+    fig.update_layout(
+        title={
+            'text': f"Corrélations Paramètres → Grand Feu - {commune}<br><sub>Analyse de la relation temporelle entre les conditions des petits feux et le grand feu</sub>",
+            'font': {'size': 16, 'color': '#2C3E50', 'family': 'Arial'}
+        },
+        xaxis=dict(
+            title="<b>Paramètres Environnementaux</b>",
+            tickangle=-45
+        ),
+        yaxis=dict(
+            title="<b>Coefficient de Corrélation</b>",
+            range=[-1, 1],
+            showgrid=True,
+            gridcolor='rgba(200, 200, 200, 0.3)'
+        ),
+        barmode='group',
+        height=500,
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=11),
+            bgcolor='rgba(255, 255, 255, 0.8)',
+            bordercolor='#CCCCCC',
+            borderwidth=1
+        ),
+        plot_bgcolor='rgba(248, 248, 248, 0.8)',
+        paper_bgcolor='white',
+        font=dict(family='Arial', size=11),
+        hovermode='x unified'
+    )
+    
+    return fig
+
+
+def create_global_parameter_correlation_chart(correlations: Dict, departement: str = None) -> go.Figure:
+    """
+    Crée un graphique des corrélations globales entre paramètres des petits feux 
+    et les surfaces des grands feux
+    
+    Args:
+        correlations: Dict avec les corrélations pour chaque paramètre
+        departement: Code du département filtré (optionnel)
+    
+    Returns:
+        Figure plotly avec barres groupées
+    """
+    if not correlations:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Aucune donnée disponible",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=16)
+        )
+        return fig
+    
+    # Préparer les données
+    params = []
+    pearson_vals = []
+    spearman_vals = []
+    mi_vals = []
+    n_samples_list = []
+    
+    for param, corr_data in correlations.items():
+        if corr_data['status'] == 'OK':
+            friendly_name = PARAM_NAMES.get(param, param)
+            params.append(friendly_name)
+            pearson_vals.append(corr_data['pearson'])
+            spearman_vals.append(corr_data['spearman'])
+            mi_vals.append(corr_data['mutual_info'])
+            n_samples_list.append(corr_data['n_samples'])
+    
+    if not params:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Données insuffisantes",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=16)
+        )
+        return fig
+    
+    # Créer le graphique avec barres groupées
+    fig = go.Figure()
+    
+    # Pearson (corrélation linéaire)
+    fig.add_trace(go.Bar(
+        name='Pearson (Linéaire)',
+        x=params,
+        y=pearson_vals,
+        marker=dict(color='#8B0000'),
+        hovertemplate='<b>%{x}</b><br>Pearson: %{y:.3f}<extra></extra>'
+    ))
+    
+    # Spearman (corrélation monotone)
+    fig.add_trace(go.Bar(
+        name='Spearman (Monotone)',
+        x=params,
+        y=spearman_vals,
+        marker=dict(color='#FA891A'),
+        hovertemplate='<b>%{x}</b><br>Spearman: %{y:.3f}<extra></extra>'
+    ))
+    
+    # Mutual Information
+    fig.add_trace(go.Bar(
+        name='Information Mutuelle',
+        x=params,
+        y=mi_vals,
+        marker=dict(color='#6E026F'),
+        hovertemplate='<b>%{x}</b><br>MI: %{y:.3f}<extra></extra>'
+    ))
+    
+    # Lignes de référence
+    fig.add_hline(y=0, line_dash="dash", line_color="gray", line_width=1)
+    fig.add_hline(y=0.5, line_dash="dot", line_color="green", line_width=1, 
+                  annotation_text="Corrélation modérée", annotation_position="right")
+    fig.add_hline(y=-0.5, line_dash="dot", line_color="red", line_width=1)
+    
+    # Titre avec nombre d'échantillons et département
+    n_total = n_samples_list[0] if n_samples_list else 0
+    
+    # Construire le titre avec le département si spécifié
+    if departement and departement != "Tous":
+        dept_text = f"Département {departement}"
+    else:
+        dept_text = "Tous départements"
+    
+    fig.update_layout(
+        title={
+            'text': f"Corrélations Globales: Paramètres des Petits Feux → Surface des Grands Feux<br><sub>{dept_text} | Analyse sur {n_total} grands feux | Corrélation entre variations des paramètres et surfaces des GF</sub>",
+            'font': {'size': 16, 'color': '#2C3E50', 'family': 'Arial'}
+        },
+        xaxis=dict(
+            title="<b>Paramètres Environnementaux</b>",
+            tickangle=-45
+        ),
+        yaxis=dict(
+            title="<b>Coefficient de Corrélation</b>",
+            range=[-1, 1],
+            showgrid=True,
+            gridcolor='rgba(200, 200, 200, 0.3)'
+        ),
+        barmode='group',
+        height=500,
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=11),
+            bgcolor='rgba(255, 255, 255, 0.8)',
+            bordercolor='#CCCCCC',
+            borderwidth=1
+        ),
+        plot_bgcolor='rgba(248, 248, 248, 0.8)',
+        paper_bgcolor='white',
+        font=dict(family='Arial', size=11),
+        hovermode='x unified'
     )
     
     return fig
@@ -967,10 +1359,14 @@ def create_acceleration_chart(daily_counts: pd.DataFrame, fire_date: pd.Timestam
 def create_multi_fire_comparison(analysis_results: list, big_fires: pd.DataFrame, 
                                 temporal_window: int, nb_feux: int = 10, 
                                 show_moyenne: bool = True, show_variance: bool = True) -> go.Figure:
-    """Comparaison multi-feux améliorée avec moyenne et variance"""
+    """Comparaison multi-feux améliorée avec moyenne, variance et paramètres environnementaux"""
     import numpy as np
+    from plotly.subplots import make_subplots
     
-    fig = go.Figure()
+    # Créer figure avec axe secondaire pour les paramètres
+    fig = make_subplots(
+        specs=[[{"secondary_y": True}]]
+    )
     
     # Palette de couleurs basée sur le thème du projet
     colors = [
@@ -983,9 +1379,13 @@ def create_multi_fire_comparison(analysis_results: list, big_fires: pd.DataFrame
     # Filtrer les feux valides
     feux_valides = [(i, r) for i, r in enumerate(analysis_results) if r.get('condition_met', False)][:nb_feux]
     
-    # Stocker les données pour calculer moyenne et variance
+    # Stocker les données pour calculer moyenne, variance et paramètres
     all_curves = []
     max_days = temporal_window
+    
+    # Pour les paramètres environnementaux
+    params_to_track = ['mean_NDVI', 'T', 'PRELIQ', 'HU', 'FF']
+    params_data = {param: [] for param in params_to_track}
     
     # Tracer chaque feu
     for idx, (fire_idx, result) in enumerate(feux_valides):
@@ -1003,13 +1403,32 @@ def create_multi_fire_comparison(analysis_results: list, big_fires: pd.DataFrame
             all_days = list(range(-max_days, 1))
             cumul_par_jour = []
             
+            # Dictionnaires pour stocker les paramètres par jour
+            params_par_jour = {param: [] for param in params_to_track}
+            
             for jour in all_days:
                 nb_feux_cumul = len(small_fires[small_fires['jours_avant'] >= abs(jour)])
                 cumul_par_jour.append(nb_feux_cumul)
+                
+                # Calculer les moyennes des paramètres pour ce jour
+                fires_ce_jour = small_fires[
+                    (small_fires['jours_avant'] >= abs(jour)) & 
+                    (small_fires['jours_avant'] < abs(jour) + 1 if jour < 0 else True)
+                ]
+                
+                for param in params_to_track:
+                    if param in small_fires.columns and len(fires_ce_jour) > 0:
+                        param_mean = fires_ce_jour[param].mean()
+                        params_par_jour[param].append(param_mean)
+                    else:
+                        params_par_jour[param].append(np.nan)
             
+            # Stocker pour calcul de moyenne globale
             all_curves.append(cumul_par_jour)
+            for param in params_to_track:
+                params_data[param].append(params_par_jour[param])
             
-            # Tracer la courbe
+            # Tracer la courbe d'accumulation
             fig.add_trace(go.Scatter(
                 x=all_days,
                 y=cumul_par_jour,
@@ -1018,8 +1437,47 @@ def create_multi_fire_comparison(analysis_results: list, big_fires: pd.DataFrame
                 line=dict(width=2.5, color=colors[idx % len(colors)]),
                 opacity=0.8,
                 hovertemplate=f'<b>{commune}</b><br>GF: {surface:.1f} ha<br>J%{{x}}<br>Cumul: %{{y}}<extra></extra>',
-                legendgroup=f'fire_{idx}'
-            ))
+                legendgroup=f'fire_{idx}',
+                showlegend=True
+            ), secondary_y=False)
+    
+    # Ajouter les courbes moyennes des paramètres environnementaux
+    param_colors = {
+        'mean_NDVI': '#2ECC40',  # Vert pour végétation
+        'T': '#FF4136',          # Rouge pour température
+        'PRELIQ': '#0074D9',     # Bleu pour précipitations
+        'HU': '#7FDBFF',         # Bleu clair pour humidité
+        'FF': '#B10DC9'          # Violet pour vent
+    }
+    
+    all_days = list(range(-max_days, 1))
+    
+    for param in params_to_track:
+        if params_data[param] and any(params_data[param]):
+            # Calculer la moyenne sur tous les feux pour ce paramètre
+            param_mean_curve = []
+            for day_idx in range(len(all_days)):
+                day_values = [curve[day_idx] for curve in params_data[param] if day_idx < len(curve)]
+                day_values = [v for v in day_values if not np.isnan(v)]
+                if day_values:
+                    param_mean_curve.append(np.mean(day_values))
+                else:
+                    param_mean_curve.append(np.nan)
+            
+            # Ne tracer que si on a des données
+            if not all(np.isnan(v) for v in param_mean_curve):
+                friendly_name = PARAM_NAMES.get(param, param)
+                fig.add_trace(go.Scatter(
+                    x=all_days,
+                    y=param_mean_curve,
+                    mode='lines',
+                    name=friendly_name,
+                    line=dict(width=2, color=param_colors.get(param, '#111111'), dash='dot'),
+                    opacity=0.7,
+                    hovertemplate=f'<b>{friendly_name}</b><br>J%{{x}}<br>Moyenne: %{{y:.2f}}<extra></extra>',
+                    legendgroup='params',
+                    showlegend=True
+                ), secondary_y=True)
     
     # Calculer interprétation
     interpretation = "?"
@@ -1062,29 +1520,39 @@ def create_multi_fire_comparison(analysis_results: list, big_fires: pd.DataFrame
     if len(all_curves) > 0:
         moyenne_finale = np.mean([c[-1] for c in all_curves])
         titre = f"Comparaison de {len(feux_valides)} Grands Feux | Pattern: <b>{interpretation}</b><br>"
-        titre += f"<sub>Cumul moyen: {moyenne_finale:.1f} feux | Fenêtre: {temporal_window}j</sub>"
+        titre += f"<sub>Cumul moyen: {moyenne_finale:.1f} feux | Fenêtre: {temporal_window}j | Courbes pointillées = Paramètres environnementaux (axe droit)</sub>"
     else:
         titre = f"Comparaison des Patterns"
+    
+    # Mise à jour du layout avec axes secondaires
+    fig.update_xaxes(
+        title_text="Jours avant le grand feu",
+        showgrid=True,
+        gridcolor='rgba(200, 200, 200, 0.3)',
+        zeroline=True,
+        range=[-max_days-2, 2]
+    )
+    
+    fig.update_yaxes(
+        title_text="<b>Cumul de petits feux</b>",
+        showgrid=True,
+        gridcolor='rgba(200, 200, 200, 0.3)',
+        rangemode='tozero',
+        secondary_y=False
+    )
+    
+    fig.update_yaxes(
+        title_text="<b>Paramètres environnementaux (moyennes)</b>",
+        showgrid=False,
+        secondary_y=True
+    )
     
     fig.update_layout(
         title={
             'text': titre,
             'font': {'size': 15, 'color': '#2C3E50'}
         },
-        xaxis=dict(
-            title="Jours avant le grand feu",
-            showgrid=True,
-            gridcolor='rgba(200, 200, 200, 0.3)',
-            zeroline=True,
-            range=[-max_days-2, 2]
-        ),
-        yaxis=dict(
-            title="Cumul de petits feux",
-            showgrid=True,
-            gridcolor='rgba(200, 200, 200, 0.3)',
-            rangemode='tozero'
-        ),
-        height=500,
+        height=550,
         showlegend=True,
         legend=dict(
             orientation="v",
@@ -1517,44 +1985,74 @@ def create_correlation_analysis_figure(df: pd.DataFrame) -> go.Figure:
 
 def create_correlation_summary_table(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Crée un tableau récapitulatif des résultats de corrélation
+    Crée un tableau récapitulatif des résultats de corrélation avec émojis
     """
     # Calculer les métriques
     lags_cc, corr_cc, best_lag_cc, best_corr_cc = calculate_cross_correlation(df)
     p_values_gc, min_p_gc, best_lag_gc = calculate_granger_causality(df)
     best_mi, mi_scores, lags_mi = calculate_mutual_information(df)
     
-    # Déterminer la significativité
+    # Déterminer la significativité avec émojis
     def interpret_cross_corr(corr):
         abs_corr = abs(corr)
         if abs_corr >= 0.7:
-            return 'Très forte'
+            return '🟢 Très forte'
         elif abs_corr >= 0.5:
-            return 'Forte'
+            return '🟡 Forte'
         elif abs_corr >= 0.3:
-            return 'Modérée'
+            return '🔵 Modérée'
         else:
-            return 'Faible'
+            return '⚪ Faible'
     
     def interpret_granger(p_value):
         if p_value < 0.01:
-            return 'Très significative (p<0.01)'
+            return '🟢 Très significative'
         elif p_value < 0.05:
-            return 'Significative (p<0.05)'
+            return '🟡 Significative'
         elif p_value < 0.1:
-            return 'Marginale (p<0.1)'
+            return '🔵 Marginale'
         else:
-            return 'Non significative (p≥0.1)'
+            return '⚪ Non significative'
     
-    def interpret_mi(mi, threshold=0.05):
-        if mi >= threshold:
-            return 'Information partagée'
+    def interpret_mi(mi):
+        if mi >= 0.15:
+            return '🟢 Forte'
+        elif mi >= 0.10:
+            return '🟡 Modérée'
+        elif mi >= 0.05:
+            return '🔵 Faible'
         else:
-            return 'Peu d\'information'
+            return '⚪ Très faible'
+    
+    def get_conclusion_cross_corr(corr):
+        abs_corr = abs(corr)
+        direction = 'positive' if corr > 0 else 'négative'
+        if abs_corr >= 0.5:
+            return f'Corrélation {direction} forte : les séries temporelles sont similaires'
+        elif abs_corr >= 0.3:
+            return f'Corrélation {direction} modérée : relation détectée'
+        else:
+            return f'Corrélation {direction} faible : peu de similarité'
+    
+    def get_conclusion_granger(p_value):
+        if p_value < 0.05:
+            return 'Les petits feux permettent de prédire les grands feux (relation causale)'
+        elif p_value < 0.1:
+            return 'Relation causale marginale : prédictibilité faible'
+        else:
+            return 'Pas de causalité détectée : les petits feux ne prédisent pas les grands feux'
+    
+    def get_conclusion_mi(mi):
+        if mi >= 0.10:
+            return 'Forte dépendance : information partagée importante entre les deux types'
+        elif mi >= 0.05:
+            return 'Dépendance modérée : information partagée détectée'
+        else:
+            return 'Indépendance : peu d\'information partagée'
     
     # Créer le tableau
     summary_data = {
-        'Algorithme': [
+        'Méthode': [
             'Cross-Correlation',
             'Granger Causality',
             'Mutual Information'
@@ -1575,9 +2073,9 @@ def create_correlation_summary_table(df: pd.DataFrame) -> pd.DataFrame:
             interpret_mi(best_mi)
         ],
         'Conclusion': [
-            'Correlation positive' if best_corr_cc > 0 else 'Correlation négative',
-            'Petits feux causent grands feux' if min_p_gc < 0.05 else 'Pas de causalité détectée',
-            'Dépendance détectée' if best_mi >= 0.05 else 'Indépendance'
+            get_conclusion_cross_corr(best_corr_cc),
+            get_conclusion_granger(min_p_gc),
+            get_conclusion_mi(best_mi)
         ]
     }
     
