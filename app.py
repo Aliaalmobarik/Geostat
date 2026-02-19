@@ -30,40 +30,43 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ========== CSS PREMIUM WOW - PALETTE MARRON + ORANGE ==========
+# ========== CSS LIGHT ACADEMIC - PALETTE ORANGE + MARRON ==========
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Poppins:wght@300;400;600;700;800&display=swap');
 
 :root {
-    --primary: #FF8C42;
-    --secondary: #A0826D;
-    --danger: #D2691E;
-    --success: #8B7355;
-    --dark-bg: #1a1410;
-    --card-bg: rgba(40, 30, 25, 0.8);
+    --primary: #D87A2D;
+    --secondary: #8B6B4F;
+    --danger: #C4661A;
+    --success: #7A8F58;
+    --bg-main: #F9F5EE;
+    --bg-soft: #FFFDF9;
+    --text-main: #3F2F23;
+    --text-muted: #6E5A49;
+    --card-bg: rgba(255, 252, 246, 0.92);
 }
 
-/* Fond spectaculaire marron-orange */
+/* Fond clair et professionnel */
 html, body, [class*="stApp"] {
-    background: linear-gradient(135deg, #1a1410 0%, #2d1f14 30%, #3d2514 70%, #1f1410 100%) !important;
+    background: linear-gradient(145deg, #F9F5EE 0%, #FFF9F1 45%, #F5EEE4 100%) !important;
     background-attachment: fixed !important;
     font-family: 'Poppins', sans-serif !important;
-    color: #F5E6D3 !important;
+    color: var(--text-main) !important;
 }
 
-/* Titres ultra-premium */
+/* Titres */
 h1 {
     font-family: 'Playfair Display', serif !important;
-    font-size: 3.5rem !important;
+    font-size: 3.2rem !important;
     font-weight: 900 !important;
-    background: linear-gradient(90deg, #A0826D 0%, #FF8C42 50%, #D2691E 100%) !important;
+    background: linear-gradient(90deg, #8B6B4F 0%, #D87A2D 55%, #C4661A 100%) !important;
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
     background-clip: text !important;
-    text-shadow: 0 0 30px rgba(255, 140, 66, 0.3) !important;
-    padding: 2rem 0 !important;
-    letter-spacing: 2px !important;
+    text-shadow: 0 1px 1px rgba(139, 107, 79, 0.18) !important;
+    padding: 1.4rem 0 !important;
+    letter-spacing: 1px !important;
     text-align: center !important;
 }
 
@@ -71,181 +74,293 @@ h2 {
     font-family: 'Playfair Display', serif !important;
     font-size: 2rem !important;
     font-weight: 800 !important;
-    background: linear-gradient(90deg, #A0826D, #FF8C42) !important;
+    background: linear-gradient(90deg, #8B6B4F, #D87A2D) !important;
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
     background-clip: text !important;
-    border-left: 4px solid #FF8C42 !important;
+    border-left: 4px solid #D87A2D !important;
     padding-left: 1rem !important;
     margin-top: 2rem !important;
 }
 
 h3 {
-    color: #FF8C42 !important;
+    color: #C4661A !important;
     font-weight: 700 !important;
-    text-shadow: 0 0 20px rgba(255, 140, 66, 0.3) !important;
+    text-shadow: none !important;
 }
 
-/* KPI Cards LUXE */
+/* KPI Cards */
 [data-testid="stMetric"] {
-    background: linear-gradient(135deg, rgba(160, 130, 109, 0.12), rgba(255, 140, 66, 0.12)) !important;
-    backdrop-filter: blur(20px) !important;
-    border: 2px solid rgba(255, 140, 66, 0.4) !important;
-    border-radius: 20px !important;
+    background: linear-gradient(145deg, rgba(255, 253, 249, 0.98), rgba(249, 242, 231, 0.96)) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(216, 122, 45, 0.28) !important;
+    border-radius: 16px !important;
     padding: 1rem !important;
-    box-shadow: 0 8px 32px 0 rgba(255, 140, 66, 0.2) !important;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 4px 14px rgba(139, 107, 79, 0.1) !important;
+    transition: all 0.25s ease !important;
 }
 
 [data-testid="stMetric"]:hover {
-    background: linear-gradient(135deg, rgba(160, 130, 109, 0.2), rgba(255, 140, 66, 0.2)) !important;
-    transform: translateY(-8px) scale(1.02) !important;
-    box-shadow: 0 16px 40px 0 rgba(255, 140, 66, 0.4) !important;
-    border-color: rgba(255, 140, 66, 0.7) !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 0 8px 18px rgba(139, 107, 79, 0.16) !important;
+    border-color: rgba(216, 122, 45, 0.45) !important;
 }
 
 [data-testid="stMetricValue"] {
-    font-size: 2.8rem !important;
+    font-size: 2.5rem !important;
     font-weight: 800 !important;
-    background: linear-gradient(90deg, #A0826D, #FF8C42) !important;
+    background: linear-gradient(90deg, #8B6B4F, #D87A2D) !important;
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
     background-clip: text !important;
 }
 
 [data-testid="stMetricLabel"] {
-    color: #F5E6D3 !important;
+    color: #6E5A49 !important;
     font-weight: 700 !important;
-    font-size: 1.1rem !important;
+    font-size: 1rem !important;
 }
 
-/* Boutons PREMIUM */
+/* Boutons */
 .stButton>button, .stDownloadButton>button {
-    background: linear-gradient(135deg, #A0826D, #FF8C42) !important;
-    color: #1a1410 !important;
+    background: linear-gradient(135deg, #A97F5A, #D87A2D) !important;
+    color: #FFFFFF !important;
     border: 2px solid transparent !important;
-    font-weight: 800 !important;
-    border-radius: 15px !important;
-    padding: 1rem 2rem !important;
-    font-size: 1.1rem !important;
-    transition: all 0.4s ease !important;
-    box-shadow: 0 10px 30px rgba(255, 140, 66, 0.3) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 1px !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    padding: 0.9rem 1.6rem !important;
+    font-size: 1rem !important;
+    transition: all 0.25s ease !important;
+    box-shadow: 0 6px 16px rgba(196, 102, 26, 0.2) !important;
+    text-transform: none !important;
+    letter-spacing: 0.3px !important;
 }
 
 .stButton>button:hover, .stDownloadButton>button:hover {
-    transform: translateY(-3px) !important;
-    box-shadow: 0 15px 40px rgba(255, 140, 66, 0.5) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(196, 102, 26, 0.28) !important;
 }
 
-/* Sidebar LUXE */
+/* Sidebar */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, rgba(40, 30, 25, 0.95) 0%, rgba(26, 20, 16, 1) 100%) !important;
-    backdrop-filter: blur(10px) !important;
-    border-right: 3px solid rgba(255, 140, 66, 0.3) !important;
+    background: linear-gradient(180deg, rgba(255, 250, 243, 0.95) 0%, rgba(248, 241, 231, 0.98) 100%) !important;
+    backdrop-filter: blur(8px) !important;
+    border-right: 1px solid rgba(216, 122, 45, 0.22) !important;
 }
 
 [data-testid="stSidebar"] label {
-    color: #FF8C42 !important;
+    color: #C4661A !important;
     font-weight: 700 !important;
-    text-shadow: 0 0 10px rgba(255, 140, 66, 0.2) !important;
+    text-shadow: none !important;
 }
 
 /* Dataframes */
 .dataframe {
-    background: rgba(40, 30, 25, 0.6) !important;
-    border: 2px solid rgba(255, 140, 66, 0.3) !important;
-    border-radius: 15px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(216, 122, 45, 0.2) !important;
+    border-radius: 12px !important;
 }
 
 .dataframe thead tr {
-    background: linear-gradient(90deg, rgba(255, 140, 66, 0.3), rgba(160, 130, 109, 0.2)) !important;
-    border-bottom: 3px solid rgba(255, 140, 66, 0.5) !important;
+    background: linear-gradient(90deg, rgba(216, 122, 45, 0.18), rgba(169, 127, 90, 0.12)) !important;
+    border-bottom: 2px solid rgba(216, 122, 45, 0.35) !important;
 }
 
 .dataframe thead th {
-    color: #FF8C42 !important;
+    color: #A97F5A !important;
     font-weight: 800 !important;
-    padding: 1.2rem !important;
+    padding: 1rem !important;
 }
 
 .dataframe tbody tr {
-    border-bottom: 1px solid rgba(255, 140, 66, 0.2) !important;
-    color: #F5E6D3 !important;
+    border-bottom: 1px solid rgba(216, 122, 45, 0.12) !important;
+    color: #8B6B4F !important;
 }
 
 .dataframe tbody tr:hover {
-    background: rgba(255, 140, 66, 0.15) !important;
+    background: rgba(216, 122, 45, 0.08) !important;
 }
 
 .dataframe td {
-    color: #F5E6D3 !important;
+    color: #8B6B4F !important;
     font-weight: 600 !important;
-    padding: 1rem !important;
+    padding: 0.85rem !important;
 }
 
 /* Messages d'alerte */
 .stSuccess {
-    background: rgba(139, 115, 85, 0.15) !important;
-    border: 2px solid #A0826D !important;
-    border-radius: 15px !important;
-    color: #FFB366 !important;
+    background: rgba(122, 143, 88, 0.14) !important;
+    border: 1px solid #7A8F58 !important;
+    border-radius: 12px !important;
+    color: #3F2F23 !important;
     font-weight: 700 !important;
 }
 
 .stInfo {
-    background: rgba(255, 140, 66, 0.15) !important;
-    border: 2px solid #FF8C42 !important;
-    border-radius: 15px !important;
-    color: #FFD699 !important;
+    background: rgba(216, 122, 45, 0.12) !important;
+    border: 1px solid #D87A2D !important;
+    border-radius: 12px !important;
+    color: #3F2F23 !important;
     font-weight: 700 !important;
 }
 
 .stWarning {
-    background: rgba(210, 107, 30, 0.15) !important;
-    border: 2px solid #D2691E !important;
-    border-radius: 15px !important;
-    color: #FFB366 !important;
+    background: rgba(196, 102, 26, 0.13) !important;
+    border: 1px solid #C4661A !important;
+    border-radius: 12px !important;
+    color: #3F2F23 !important;
     font-weight: 700 !important;
 }
 
 .stError {
-    background: rgba(210, 107, 30, 0.2) !important;
-    border: 2px solid #D2691E !important;
-    border-radius: 15px !important;
-    color: #FF9955 !important;
+    background: rgba(196, 102, 26, 0.17) !important;
+    border: 1px solid #C4661A !important;
+    border-radius: 12px !important;
+    color: #4E2A12 !important;
     font-weight: 700 !important;
 }
 
 /* Sélecteurs & Inputs */
 .stSelectbox [data-testid="baseButton-secondary"] {
-    background: rgba(255, 140, 66, 0.1) !important;
-    border: 2px solid rgba(255, 140, 66, 0.3) !important;
-    color: #FF8C42 !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(216, 122, 45, 0.3) !important;
+    color: #6E5A49 !important;
     border-radius: 10px !important;
     transition: all 0.3s ease !important;
 }
 
 .stSelectbox [data-testid="baseButton-secondary"]:hover {
-    border-color: rgba(210, 107, 30, 0.6) !important;
-    background: rgba(255, 140, 66, 0.2) !important;
+    border-color: rgba(196, 102, 26, 0.6) !important;
+    background: rgba(216, 122, 45, 0.08) !important;
 }
 
 input[type="number"], input[type="text"] {
-    background: rgba(255, 140, 66, 0.1) !important;
-    border: 2px solid rgba(255, 140, 66, 0.3) !important;
-    color: #FF8C42 !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(216, 122, 45, 0.3) !important;
+    color: #6E5A49 !important;
     border-radius: 10px !important;
 }
 
 input[type="number"]:focus, input[type="text"]:focus {
-    border-color: rgba(210, 107, 30, 0.6) !important;
-    box-shadow: 0 0 15px rgba(255, 140, 66, 0.3) !important;
+    border-color: rgba(196, 102, 26, 0.6) !important;
+    box-shadow: 0 0 0 2px rgba(216, 122, 45, 0.18) !important;
 }
 
 hr {
-    border: 1px solid rgba(255, 140, 66, 0.2) !important;
+    border: 1px solid rgba(216, 122, 45, 0.22) !important;
+}
+
+.stMarkdown p,
+.stMarkdown li,
+.stMarkdown div,
+.stCaption,
+label,
+span {
+    color: var(--text-main) !important;
+}
+
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stMarkdown li,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] div {
+    color: var(--text-main) !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stNumberInput"] button {
+    background: rgba(255, 248, 238, 0.95) !important;
+    border: 1px solid rgba(160, 130, 109, 0.55) !important;
+    color: #A0826D !important;
+}
+
+[data-testid="stSidebar"] .stNumberInput button,
+[data-testid="stSidebar"] div[data-baseweb="input"] button,
+[data-testid="stSidebar"] button[aria-label*="Increment"],
+[data-testid="stSidebar"] button[aria-label*="Decrement"] {
+    background-color: rgba(255, 248, 238, 0.95) !important;
+    border: 1px solid rgba(160, 130, 109, 0.55) !important;
+    color: #A0826D !important;
+    opacity: 1 !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    z-index: 2 !important;
+}
+
+[data-testid="stSidebar"] .stNumberInput button:not(:disabled),
+[data-testid="stSidebar"] div[data-baseweb="input"] button:not(:disabled),
+[data-testid="stSidebar"] button[aria-label*="Increment"]:not(:disabled),
+[data-testid="stSidebar"] button[aria-label*="Decrement"]:not(:disabled) {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover {
+    background: rgba(255, 242, 224, 0.95) !important;
+    border-color: rgba(160, 130, 109, 0.8) !important;
+    color: #A0826D !important;
+}
+
+[data-testid="stSidebar"] .stNumberInput button:hover,
+[data-testid="stSidebar"] div[data-baseweb="input"] button:hover,
+[data-testid="stSidebar"] button[aria-label*="Increment"]:hover,
+[data-testid="stSidebar"] button[aria-label*="Decrement"]:hover {
+    background-color: rgba(255, 242, 224, 0.95) !important;
+    border-color: rgba(160, 130, 109, 0.8) !important;
+    color: #A0826D !important;
+}
+
+[data-testid="stSidebar"] button[aria-label*="Increment"] svg,
+[data-testid="stSidebar"] button[aria-label*="Decrement"] svg {
+    fill: currentColor !important;
+    color: currentColor !important;
+}
+
+[data-testid="stSidebar"] button[aria-label*="Increment"] svg *,
+[data-testid="stSidebar"] button[aria-label*="Decrement"] svg * {
+    fill: currentColor !important;
+    stroke: currentColor !important;
+}
+
+[data-testid="stSidebar"] .stNumberInput button:disabled,
+[data-testid="stSidebar"] div[data-baseweb="input"] button:disabled,
+[data-testid="stSidebar"] button[aria-label*="Increment"]:disabled,
+[data-testid="stSidebar"] button[aria-label*="Decrement"]:disabled {
+    background-color: rgba(247, 239, 228, 1) !important;
+    border-color: rgba(160, 130, 109, 0.7) !important;
+    color: #A0826D !important;
+    -webkit-text-fill-color: #A0826D !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+}
+
+[data-testid="stSidebar"] .stNumberInput button:disabled svg,
+[data-testid="stSidebar"] .stNumberInput button:disabled svg *,
+[data-testid="stSidebar"] div[data-baseweb="input"] button:disabled svg,
+[data-testid="stSidebar"] div[data-baseweb="input"] button:disabled svg *,
+[data-testid="stSidebar"] button[aria-label*="Increment"]:disabled svg,
+[data-testid="stSidebar"] button[aria-label*="Increment"]:disabled svg *,
+[data-testid="stSidebar"] button[aria-label*="Decrement"]:disabled svg,
+[data-testid="stSidebar"] button[aria-label*="Decrement"]:disabled svg * {
+    fill: #A0826D !important;
+    stroke: #A0826D !important;
+    color: #A0826D !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stSidebar"] .stNumberInput button span,
+[data-testid="stSidebar"] .stNumberInput button:disabled span,
+[data-testid="stSidebar"] div[data-baseweb="input"] button span,
+[data-testid="stSidebar"] div[data-baseweb="input"] button:disabled span {
+    color: #A0826D !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stSidebar"] input[type="number"] {
+    color: #8B6B4F !important;
 }
 
 @keyframes slideIn {
@@ -258,28 +373,79 @@ hr {
 }
 </style>
 """, unsafe_allow_html=True)
+st.markdown("""
+<style>
+/* --- Fix pour rendre les boutons +/- cliquables dans la sidebar --- */
 
+/* Assure que le conteneur n'auto-masque pas les boutons */
+[data-testid="stSidebar"] .stNumberInput,
+[data-testid="stSidebar"] div[data-baseweb="input"] {
+    overflow: visible !important;
+}
+
+/* Force les boutons +/- à être visibles, à avoir une taille raisonnable,
+   et à accepter les clics (pointer-events) ; z-index élevé pour être au-dessus */
+[data-testid="stSidebar"] .stNumberInput button,
+[data-testid="stSidebar"] div[data-baseweb="input"] button,
+[data-testid="stSidebar"] button[aria-label*="Increment"],
+[data-testid="stSidebar"] button[aria-label*="Decrement"] {
+    position: relative !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Si un pseudo-élément recouvre (rare), ignore ses événements */
+[data-testid="stSidebar"] .stNumberInput *::before,
+[data-testid="stSidebar"] .stNumberInput *::after {
+    pointer-events: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
 # ========== FONCTION APPLY THEME ==========
 def apply_premium_theme(fig):
     """Applique le thème PREMIUM WOW aux graphes"""
     fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(26, 20, 16, 0.1)",
-        plot_bgcolor="rgba(40, 30, 25, 0.3)",
-        font=dict(family="Poppins, sans-serif", color="#F5E6D3", size=12),
-        title_font=dict(size=16, color="#FF8C42"),
-        xaxis=dict(gridcolor="rgba(255, 140, 66, 0.1)", showgrid=True, zeroline=False),
-        yaxis=dict(gridcolor="rgba(255, 140, 66, 0.1)", showgrid=True, zeroline=False),
+        template="plotly_white",
+        paper_bgcolor="rgba(255, 253, 249, 0.98)",
+        plot_bgcolor="rgba(255, 251, 245, 0.95)",
+        font=dict(family="Poppins, sans-serif", color="#3F2F23", size=12),
+        title_font=dict(size=16, color="#C4661A"),
+        xaxis=dict(
+            gridcolor="rgba(139, 107, 79, 0.12)", 
+            linecolor="rgba(139, 107, 79, 0.35)", 
+            showgrid=True, 
+            zeroline=False,
+            title_font=dict(color="#3F2F23", size=14),  # Titre axe X
+            tickfont=dict(color="#3F2F23", size=11)     # Valeurs axe X
+        ),
+        yaxis=dict(
+            gridcolor="rgba(139, 107, 79, 0.12)", 
+            linecolor="rgba(139, 107, 79, 0.35)", 
+            showgrid=True, 
+            zeroline=False,
+            title_font=dict(color="#3F2F23", size=14),  # Titre axe Y
+            tickfont=dict(color="#3F2F23", size=11)     # Valeurs axe Y
+        ),
         showlegend=True,
         legend=dict(
-            bgcolor="rgba(255, 140, 66, 0.1)",
-            bordercolor="rgba(255, 140, 66, 0.3)",
-            borderwidth=2,
-            font=dict(color="#FF8C42")
+            bgcolor="rgba(255, 247, 235, 0.85)",
+            bordercolor="rgba(216, 122, 45, 0.25)",
+            borderwidth=1,
+            font=dict(color="#3F2F23"),
+            title=dict(font=dict(color="#3F2F23"))
         ),
         hovermode='closest',
         margin=dict(l=50, r=50, t=50, b=50)
     )
+    fig.update_xaxes(title_font=dict(color="#3F2F23", size=14), tickfont=dict(color="#3F2F23", size=11))
+    fig.update_yaxes(title_font=dict(color="#3F2F23", size=14), tickfont=dict(color="#3F2F23", size=11))
     return fig
 
 # ========== CACHE DATA LOADING ==========
@@ -497,41 +663,98 @@ def main():
             daily_counts = small_fires_temp.groupby('date_only').size().reset_index(name='Nombre')
             daily_counts['date_only'] = pd.to_datetime(daily_counts['date_only'])
             
-            m1, m2, m3, m4, m5 = st.columns(5)
-            with m1:
-                st.metric("Petits feux", selected_result['small_fires_count'])
-            with m2:
-                st.metric("Moyens feux", selected_result['medium_fires_count'])
-            with m3:
-                st.metric("Total avant", selected_result['small_fires_count'] + selected_result['medium_fires_count'])
-            with m4:
-                st.metric("Surface (ha)", f"{selected_fire['surface_ha']:.1f}")
-            with m5:
-                st.metric("Tendance", selected_result['trend'])
+            # ===== SECTION 1 : TENDANCES DES PARAMÈTRES ENVIRONNEMENTAUX =====
+            st.markdown("##### Tendances des Paramètres Environnementaux")
+            st.caption("Analyse de l'évolution des conditions environnementales durant les petits incendies")
             
-            departement = str(selected_fire.get('depart', 'Inconnu'))
-            fig_time = create_temporal_series(daily_counts, selected_fire['date_alerte'], selected_fire['commune'], 
-                                            tendance=selected_result['trend'], departement=departement)
-            fig_time = apply_premium_theme(fig_time)
-            fig_time.update_layout(
-            margin=dict(l=20, r=20, t=100, b=20)  # l,r,t,b en pixels
-            )
-            st.plotly_chart(fig_time, use_container_width=True)
-            
-            
+            # Analyser les tendances
             df_trends, trends_summary = analyze_parameter_trends(small_fires_temp)
+            
             if len(df_trends) > 0 and len(trends_summary) > 0:
-                st.markdown("""<div style='height: 1.5rem;'></div>""", unsafe_allow_html=True)
-                st.markdown("""<h3 style='border-bottom: 3px solid rgba(255, 140, 66, 0.4); padding-bottom: 1rem; margin-bottom: 1.5rem;'>📈 Tendances Environnementales</h3>""", unsafe_allow_html=True)
-                st.markdown("""<div style='height: 1rem;'></div>""", unsafe_allow_html=True)
-                fig_params = create_parameter_trends_chart(df_trends, trends_summary, selected_fire['commune'])
+                # Graphique des tendances
+                fig_params = create_parameter_trends_chart(
+                    df_trends, 
+                    trends_summary, 
+                    selected_fire['commune']
+                )
                 fig_params = apply_premium_theme(fig_params)
-                fig_params.update_layout(
-            margin=dict(l=20, r=20, t=150, b=20)  # l,r,t,b en pixels
+                fig_params.update_layout(margin=dict(l=30, r=30, t=155, b=45), height=510)
+                st.plotly_chart(fig_params, use_container_width=True)
+                
+                # Tableau récapitulatif des tendances
+                st.markdown("##### Tableau Récapitulatif des Tendances")
+                
+                # Préparer les données du tableau
+                tableau_data = []
+                for param, stats in trends_summary.items():
+                    friendly_name = PARAM_NAMES.get(param, param)
+                    tableau_data.append({
+                        'Paramètre': friendly_name,
+                        'Direction': stats['direction'],
+                        'Variation (%)': f"{stats['variation_pct']:+.2f}%"
+                    })
+                
+                df_tableau = pd.DataFrame(tableau_data)
+                
+                # Appliquer un style au tableau
+                def color_direction(val):
+                    if val == 'Croissance':
+                        return 'background-color: #d4edda; color: #155724; font-weight: bold'
+                    elif val == 'Décroissance':
+                        return 'background-color: #f8d7da; color: #721c24; font-weight: bold'
+                    elif val == 'Stable':
+                        return 'background-color: #d1ecf1; color: #0c5460; font-weight: bold'
+                    else:
+                        return 'background-color: #e2e3e5; color: #383d41'
+                
+                styled_df = df_tableau.style.applymap(
+                    color_direction, 
+                    subset=['Direction']
+                )
+                
+                st.dataframe(styled_df, use_container_width=True, hide_index=True)
+                
+                # Informations complémentaires
+                st.caption(
+                    "**Interprétation** : "
+                    "Variation (%) = changement entre la première et dernière période"
+                )
+            else:
+                st.warning("⚠️ Données insuffisantes pour analyser les tendances des paramètres")
+            
+            # ===== SECTION 2 : GRAPHE TEMPOREL =====
+            st.markdown("---")
+            st.markdown("##### Accumulation Temporelle des Incendies")
+            
+            # Métriques clés avec delta pour la tendance - AU-DESSUS DU GRAPHE
+            st.markdown("##### Statistiques du Grand Feu")
+            metric_col1, metric_col2, metric_col3, metric_col4, metric_col5 = st.columns(5)
+            with metric_col1:
+                st.metric("Petits feux", selected_result['small_fires_count'])
+            with metric_col2:
+                st.metric("Moyens feux", selected_result['medium_fires_count'])
+            with metric_col3:
+                total = selected_result['small_fires_count'] + selected_result['medium_fires_count']
+                st.metric("Total feux avant", total)
+            with metric_col4:
+                st.metric("Surface grand feu", f"{selected_fire['surface_ha']:.1f} ha")
+            with metric_col5:
+                tendance = selected_result['trend']
+                st.metric("Tendance", tendance)
+            
+            # Graphe temporel avec tendance et département dans le titre
+            departement = str(selected_fire.get('depart', 'Inconnu'))
+            fig_time = create_temporal_series(
+                daily_counts, 
+                selected_fire['date_alerte'], 
+                selected_fire['commune'],
+                tendance=tendance,
+                departement=departement
             )
-                st.plotly_chart(fig_params, use_container_width=True, height=500)
+            fig_time = apply_premium_theme(fig_time)
+            st.plotly_chart(fig_time, use_container_width=True)
         else:
-            st.info("ℹ️ Aucun petit feu dans la fenêtre temporelle")
+            st.info("Aucun petit feu dans la fenêtre temporelle")
     
     # ========== COMMUNES À TENDANCE CROISSANTE ==========
     st.markdown("""<div style='height: 1.5rem;'></div>""", unsafe_allow_html=True)
@@ -656,6 +879,36 @@ def main():
     fig_comp = apply_premium_theme(fig_comp)
     st.plotly_chart(fig_comp, use_container_width=True)
     
+    st.markdown("""<div style='height: 1.5rem;'></div>""", unsafe_allow_html=True)
+    
+    # ===== DÉPARTEMENT FILTER FOR CORRELATIONS =====
+    st.markdown("""
+    <h2>🔗 ANALYSES DE CORRÉLATION</h2>
+    """, unsafe_allow_html=True)
+    
+    st.caption("Filtrez les analyses de corrélation par département pour des résultats plus précis")
+    
+    departements_disponibles = sorted(df['depart'].dropna().astype(str).unique())
+    departements_options = ["Tous"] + list(departements_disponibles)
+    
+    selected_dept = st.selectbox(
+        "Sélectionnez un département",
+        options=departements_options,
+        index=0,
+        key='dept_correlation_filter'
+    )
+    
+    # Filtrer les données par département
+    if selected_dept != "Tous":
+        df_filtered_dept = df_filtered[df_filtered['depart'].astype(str) == str(selected_dept)].copy()
+        big_fires_dept = big_fires[big_fires['depart'].astype(str) == str(selected_dept)].copy()
+        st.info(f"🔍 Filtre actif: Département {selected_dept}")
+    else:
+        df_filtered_dept = df_filtered
+        big_fires_dept = big_fires
+    
+    st.markdown("---")
+    
     # ========== CORRÉLATIONS ==========
     st.markdown("""<div style='height: 1.5rem;'></div>""", unsafe_allow_html=True)
     
@@ -665,26 +918,120 @@ def main():
     
     st.markdown("""<div style='height: 1rem;'></div>""", unsafe_allow_html=True)
     
+    # ========== CORRÉLATIONS ==========
     st.markdown("""<h3 style='border-bottom: 3px solid rgba(255, 140, 66, 0.4); padding-bottom: 1rem; margin-bottom: 1.5rem;'>📋 Tableau Récapitulatif des Corrélations</h3>""", unsafe_allow_html=True)
     try:
-        summary_df = create_correlation_summary_table(df_filtered)
-        st.dataframe(summary_df, use_container_width=True, height=300)
+        summary_df = create_correlation_summary_table(df_filtered_dept)
+        
+        # Appliquer un style au tableau
+        def color_interpretation(val):
+            if '🟢' in str(val):
+                return 'background-color: #d4edda; color: #155724; font-weight: bold'
+            elif '🟡' in str(val):
+                return 'background-color: #fff3cd; color: #856404; font-weight: bold'
+            elif '🔵' in str(val):
+                return 'background-color: #d1ecf1; color: #0c5460; font-weight: bold'
+            elif '⚪' in str(val):
+                return 'background-color: #e2e3e5; color: #383d41; font-weight: bold'
+            return ''
+        
+        styled_df = summary_df.style.applymap(color_interpretation, subset=['Interprétation'])
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
     except Exception as e:
         st.warning(f"⚠️ Corrélations indisponibles: {e}")
     
-    st.markdown("""<div style='height: 1.5rem;'></div>""", unsafe_allow_html=True)
+    st.markdown("---")
     
     st.markdown("""<h3 style='border-bottom: 3px solid rgba(255, 140, 66, 0.4); padding-bottom: 1rem; margin-bottom: 1.5rem;'>📈 Corrélations Paramètres → Grands Feux</h3>""", unsafe_allow_html=True)
     
     st.markdown("""<div style='height: 1rem;'></div>""", unsafe_allow_html=True)
+    
     global_param_corr = analyze_global_parameter_correlations(analysis_results, big_fires)
     if global_param_corr and any(c['status'] == 'OK' for c in global_param_corr.values()):
         fig_global = create_global_parameter_correlation_chart(global_param_corr)
         fig_global = apply_premium_theme(fig_global)
-        fig_global.update_layout(
-            margin=dict(l=20, r=20, t=150, b=20)  # l,r,t,b en pixels
-            )
+        fig_global.update_layout(margin=dict(l=20, r=20, t=150, b=20))
         st.plotly_chart(fig_global, use_container_width=True)
+        
+        # Tableau détaillé
+        st.markdown("##### Tableau Détaillé des Corrélations Paramétriques")
+        
+        corr_table_data = []
+        for param, corr_data in global_param_corr.items():
+            if corr_data['status'] == 'OK':
+                friendly_name = PARAM_NAMES.get(param, param)
+                
+                max_corr = max(
+                    abs(corr_data['pearson']),
+                    abs(corr_data['spearman']),
+                    abs(corr_data['mutual_info'])
+                )
+                
+                if max_corr >= 0.7:
+                    interpretation = "🟢 Forte"
+                elif max_corr >= 0.4:
+                    interpretation = "🟡 Modérée"
+                elif max_corr >= 0.2:
+                    interpretation = "🔵 Faible"
+                else:
+                    interpretation = "⚪ Très faible"
+                
+                pearson_sig = "✓" if corr_data['pearson_pval'] < 0.05 else "✗"
+                spearman_sig = "✓" if corr_data['spearman_pval'] < 0.05 else "✗"
+                
+                corr_table_data.append({
+                    'Paramètre': friendly_name,
+                    'Pearson': f"{corr_data['pearson']:.3f} ({pearson_sig})",
+                    'Spearman': f"{corr_data['spearman']:.3f} ({spearman_sig})",
+                    'Info. Mutuelle': f"{corr_data['mutual_info']:.3f}",
+                    'Moyenne': f"{corr_data['mean_value']:.2f}",
+                    'N échantillons': corr_data['n_samples'],
+                    'Interprétation': interpretation
+                })
+        
+        df_global_corr_table = pd.DataFrame(corr_table_data)
+        
+        def color_correlation(val):
+            try:
+                num_str = val.split('(')[0].strip() if '(' in val else val
+                num_val = float(num_str)
+                if abs(num_val) >= 0.7:
+                    return 'background-color: #d4edda; color: #155724; font-weight: bold'
+                elif abs(num_val) >= 0.4:
+                    return 'background-color: #fff3cd; color: #856404; font-weight: bold'
+                elif abs(num_val) >= 0.2:
+                    return 'background-color: #d1ecf1; color: #0c5460'
+                else:
+                    return ''
+            except:
+                return ''
+        
+        def color_interpretation_table(val):
+            if "🟢 Forte" in val:
+                return 'background-color: #d4edda; color: #155724; font-weight: bold; font-size: 1.1em'
+            elif "🟡 Modérée" in val:
+                return 'background-color: #fff3cd; color: #856404; font-weight: bold; font-size: 1.1em'
+            elif "🔵 Faible" in val:
+                return 'background-color: #d1ecf1; color: #0c5460; font-weight: bold; font-size: 1.1em'
+            else:
+                return 'background-color: #e2e3e5; color: #383d41; font-size: 1.1em'
+        
+        styled_global_corr = df_global_corr_table.style.applymap(
+            color_correlation,
+            subset=['Pearson', 'Spearman', 'Info. Mutuelle']
+        ).applymap(
+            color_interpretation_table,
+            subset=['Interprétation']
+        )
+        
+        st.dataframe(styled_global_corr, use_container_width=True, hide_index=True)
+        
+        st.caption(
+            "**Légende** : "
+            "**Pearson/Spearman** : ✓ = significatif (p < 0.05), ✗ = non significatif | "
+            "**Info. Mutuelle** : quantification de l'information partagée | "
+            "**N échantillons** : nombre de grands feux analysés"
+        )
     else:
         st.info("ℹ️ Données insuffisantes pour corrélations")
     
