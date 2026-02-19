@@ -403,7 +403,18 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("<h3 style='color: #FFFFFF;'>📅 Période</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #FFFFFF;'>�️ Département</h3>", unsafe_allow_html=True)
+        departements_disponibles = sorted(df['depart'].dropna().astype(str).unique())
+        departements_options = ["Tous"] + list(departements_disponibles)
+        selected_dept_main = st.selectbox(
+            "Sélectionnez un département",
+            options=departements_options,
+            index=0,
+            key='dept_main_filter',
+            label_visibility="collapsed"
+        )
+        
+        st.markdown("<h3 style='color: #FFFFFF; margin-top: 1.5rem;'>📅 Période</h3>", unsafe_allow_html=True)
         annee_min = int(df['annee'].min())
         annee_max = int(df['annee'].max())
         annee_debut = st.number_input("Début", min_value=annee_min, max_value=annee_max, value=annee_min)
@@ -418,9 +429,32 @@ def main():
         temporal_window = st.slider("Fenêtre (jours)", 7, 180, 30)
         min_fires_before = st.slider("Min. petits feux", 0, 20, 3)
     
-    # Filtrer données
-    df_filtered = df[(df['annee'] >= annee_debut) & (df['annee'] <= annee_fin)].copy()
+    # Filtrer données - D'ABORD par département, puis par autres paramètres
+    if selected_dept_main != "Tous":
+        df_filtered = df[df['depart'].astype(str) == str(selected_dept_main)].copy()
+    else:
+        df_filtered = df.copy()
+    
+    df_filtered = df_filtered[(df_filtered['annee'] >= annee_debut) & (df_filtered['annee'] <= annee_fin)].copy()
     df_filtered = classify_fires(df_filtered, seuil_petit, seuil_grand)
+    
+    # ========== FILTRE DÉPARTEMENT INFO ==========
+    if selected_dept_main != "Tous":
+        st.markdown(f"""
+        <div style='background: linear-gradient(135deg, rgba(30, 90, 150, 0.15), rgba(46, 139, 158, 0.15)); 
+                    border-left: 4px solid #1E5A96; 
+                    border-radius: 8px; 
+                    padding: 1rem; 
+                    margin-bottom: 1.5rem;
+                    box-shadow: 0 2px 8px rgba(30, 90, 150, 0.1);'>
+            <p style='color: #1E5A96; margin: 0; font-weight: 700; font-size: 1.05rem;'>
+                📍 Filtre Actif: Département <strong>{selected_dept_main}</strong>
+            </p>
+            <p style='color: #6B7280; margin: 0.5rem 0 0 0; font-size: 0.95rem;'>
+                Toutes les analyses ci-dessous sont limitées à ce département pour plus de pertinence locale.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # ========== KPI DASHBOARD ==========
     st.markdown("""<div style='height: 2rem;'></div>""", unsafe_allow_html=True)
@@ -451,6 +485,83 @@ def main():
         st.metric("Grands Feux", grands, delta=f"{pct_grand:.0f}%")
     with kpi_cols[4]:
         st.metric("Surface Totale", f"{total_surface:.0f} ha")
+
+        # Message méthodologie
+    st.info(f"""
+    **Méthodologie** : Les petits et moyens feux sont comptés **uniquement** s'ils répondent aux **TROIS conditions** :
+    **Temporelle** : **{temporal_window}** jours AVANT le grand feu | **Spatiale** : **{buffer_radius}** km AUTOUR | **Quantité** : Min. **{min_fires_before}** petits feux
+    """)
+    
+    st.markdown("---")
+    
+    # ========== PRÉPARATION DES DONNÉES ==========
+    big_fires = df_filtered[
+        (df_filtered['categorie'] == 'Grand feu') & 
+        (df_filtered['date_alerte'].notna())
+    ].copy()
+    
+    # Dédupliquer les grands feux (même commune, date, coordonnées, surface)
+    big_fires = big_fires.drop_duplicates(
+        subset=['commune', 'date_alerte', 'x', 'y', 'surface_ha'],
+        keep='first'
+    ).reset_index(drop=True)
+    
+    analysis_results = []
+    if len(big_fires) > 0:
+        with st.spinner('Analyse en cours...'):
+            for _, big_fire in big_fires.iterrows():
+                result = analyze_fires_before_big_fire(
+                    df_filtered, big_fire, temporal_window, 
+                    buffer_radius, min_fires_before
+                )
+                analysis_results.append(result)
+    
+    valid_count = sum(1 for r in analysis_results if r['condition_met'])
+    
+    if len(big_fires) == 0:
+        st.warning("Aucun grand feu trouvé dans la période sélectionnée")
+        return
+    
+    if valid_count == 0:
+        st.warning("Aucun grand feu ne répond aux critères. Ajustez les paramètres.")
+        return
+    
+    # ========== STATISTIQUES CARTOGRAPHIQUES ==========
+    st.subheader("Statistiques Cartographiques")
+    
+    total_small = sum(r['small_fires_count'] for r in analysis_results if r['condition_met'])
+    total_medium = sum(r['medium_fires_count'] for r in analysis_results if r['condition_met'])
+    
+    col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4)
+    with col_stat1:
+        st.metric("Grands feux validés", valid_count)
+    with col_stat2:
+        st.metric("Buffers affichés", valid_count)
+    with col_stat3:
+        st.metric("Total petits feux", total_small)
+    with col_stat4:
+        st.metric("Total moyens feux", total_medium)
+    
+    st.markdown("---")
+    
+    # Préparer les données de résultats
+    results_data = []
+    for idx, result in enumerate(analysis_results):
+        if result['condition_met']:
+            bf = big_fires.iloc[idx]
+            results_data.append({
+                'Date': bf['date_alerte'].strftime('%d/%m/%Y'),
+                'DateTime': bf['date_alerte'].strftime('%d/%m/%Y %H:%M'),
+                'Commune': bf['commune'],
+                'Surface (ha)': bf['surface_ha'],
+                'Petits feux': result['small_fires_count'],
+                'Moyens feux': result['medium_fires_count'],
+                'Total buffer': len(result['fires_in_buffer']),
+                'Tendance': result['trend']
+            })
+    
+    results_df = pd.DataFrame(results_data)
+    valid_indices = [i for i, r in enumerate(analysis_results) if r['condition_met']]
     
     # Insights Section
     st.markdown("""<div style='height: 1.5rem;'></div>""", unsafe_allow_html=True)
@@ -929,29 +1040,44 @@ def main():
     st.markdown("""
     <h2>Analyses de Corrélation</h2>
     """, unsafe_allow_html=True)
-    st.markdown(""" 
-        <div style='background: rgba(30, 90, 150, 0.60); border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 1.5rem; border: 1px solid #1E5A96; box-shadow: 0 2px 8px rgba(30, 90, 150, 0.15);'>
-            <h3 style='color: #FFFFFF; margin: 0; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px;'>Filtrez les analyses de corrélation par département pour des résultats plus précis Feu</h3>
-        </div>
-        """, unsafe_allow_html=True)
     
-    
-    departements_disponibles = sorted(df['depart'].dropna().astype(str).unique())
-    departements_options = ["Tous"] + list(departements_disponibles)
-    
-    selected_dept = st.selectbox(
-        "Sélectionnez un département",
-        options=departements_options,
-        index=0,
-        key='dept_correlation_filter'
-    )
-    
-    # Filtrer les données par département
-    if selected_dept != "Tous":
-        df_filtered_dept = df_filtered[df_filtered['depart'].astype(str) == str(selected_dept)].copy()
-        big_fires_dept = big_fires[big_fires['depart'].astype(str) == str(selected_dept)].copy()
-        st.info(f"🔍 Filtre actif: Département {selected_dept}")
+    if selected_dept_main == "Tous":
+        st.markdown(""" 
+            <div style='background: rgba(30, 90, 150, 0.60); border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 1.5rem; border: 1px solid #1E5A96; box-shadow: 0 2px 8px rgba(30, 90, 150, 0.15);'>
+                <h3 style='color: #FFFFFF; margin: 0; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px;'>Filtrez les analyses de corrélation par département pour des résultats plus précis</h3>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        departements_disponibles = sorted(df['depart'].dropna().astype(str).unique())
+        departements_options = ["Tous"] + list(departements_disponibles)
+        
+        selected_dept_corr = st.selectbox(
+            "Sélectionnez un département",
+            options=departements_options,
+            index=0,
+            key='dept_correlation_filter'
+        )
+        
+        # Filtrer les données par département
+        if selected_dept_corr != "Tous":
+            df_filtered_dept = df_filtered[df_filtered['depart'].astype(str) == str(selected_dept_corr)].copy()
+            big_fires_dept = big_fires[big_fires['depart'].astype(str) == str(selected_dept_corr)].copy()
+            st.info(f"🔍 Filtre actif: Département {selected_dept_corr}")
+        else:
+            df_filtered_dept = df_filtered
+            big_fires_dept = big_fires
     else:
+        st.markdown(f""" 
+            <div style='background: rgba(46, 139, 158, 0.15); border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 1.5rem; border-left: 4px solid #2E8B9E; box-shadow: 0 2px 8px rgba(46, 139, 158, 0.1);'>
+                <p style='color: #1E5A96; margin: 0; font-weight: 700; font-size: 1.05rem;'>
+                    ℹ️ Filtre Département Appliqué
+                </p>
+                <p style='color: #6B7280; margin: 0.5rem 0 0 0; font-size: 0.95rem;'>
+                    Les corrélations sont déjà filtrées pour le département <strong>{selected_dept_main}</strong> sélectionné au niveau des paramètres principaux.
+                    Les données ci-dessous ne montrent que ce département.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
         df_filtered_dept = df_filtered
         big_fires_dept = big_fires
     
