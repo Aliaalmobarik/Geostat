@@ -1,16 +1,22 @@
 [theme]
 primaryColor = "#FF8C42"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#FFD699"
-textColor = "#FF8C42"
-font = "monospace"
+backgroundColor = "#1a1410"
+secondaryBackgroundColor = "#A0826D"
+textColor = "#F5E6D3"
+font = "sans serif"
 
 [client]
 showErrorDetails = true
+toolbarMode = "auto"
 
 [logger]
 level = "info"
 
 [server]
-port = 8502
+port = 8501
 headless = true
+enableXsrfProtection = true
+maxUploadSize = 200
+
+[browser]
+gatherUsageStats = false

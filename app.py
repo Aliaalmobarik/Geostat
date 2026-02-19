@@ -282,6 +282,18 @@ def apply_premium_theme(fig):
     )
     return fig
 
+# ========== CACHE DATA LOADING ==========
+@st.cache_data
+def load_csv_data():
+    """Load CSV data with caching"""
+    try:
+        csv_path = Path(__file__).parent / 'data' / 'promothee' / 'incendies_paca_2015_2022.csv'
+        df = load_data(str(csv_path))
+        return df
+    except Exception as e:
+        st.error(f"❌ Erreur de chargement: {e}")
+        return pd.DataFrame()
+
 # ========== MAIN APPLICATION ==========
 def main():
     # Titre spectaculaire
@@ -295,15 +307,10 @@ def main():
     """, unsafe_allow_html=True)
     
     # Charger données
-    try:
-        csv_path = Path(__file__).parent / 'data' / 'promothee' / 'incendies_paca_2015_2022.csv'
-        df = load_data(str(csv_path))
-        
-        if len(df) == 0:
-            st.error("❌ Aucune donnée trouvée")
-            return
-    except Exception as e:
-        st.error(f"❌ Erreur: {e}")
+    df = load_csv_data()
+    
+    if df.empty or len(df) == 0:
+        st.error("❌ Aucune donnée trouvée. Vérifiez que le fichier CSV existe.")
         return
     
     # ========== SIDEBAR PARAMÈTRES ==========
