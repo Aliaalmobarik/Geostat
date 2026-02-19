@@ -102,61 +102,7 @@ def create_map(df: pd.DataFrame, big_fires: pd.DataFrame = None,
         except Exception as e:
             print(f"Erreur lors du chargement du contour Prométhée: {e}")
     
-    # Charger et afficher le massif forestier
-    if HAS_GEOPANDAS:
-        try:
-            massif_parquet_path = 'data/L_MASSIFS_FORESTIERS_S_013.parquet'
-            massif_shp_paths = [
-                'data/massif/L_MASSIFS_FORESTIERS_S_013.shp',
-                'data/L_MASSIFS_FORESTIERS_S_013.shp'
-            ]
 
-            gdf_massif = None
-            if os.path.exists(massif_parquet_path):
-                gdf_massif = gpd.read_parquet(massif_parquet_path)
-            else:
-                for massif_path in massif_shp_paths:
-                    if os.path.exists(massif_path):
-                        gdf_massif = gpd.read_file(massif_path)
-                        break
-
-            if gdf_massif is not None:
-                
-                # Convertir en WGS84 si nécessaire
-                if gdf_massif.crs is not None and gdf_massif.crs.to_string() != 'EPSG:4326':
-                    gdf_massif = gdf_massif.to_crs('EPSG:4326')
-                
-                # Parcourir toutes les géométries du massif
-                for geom in gdf_massif.geometry:
-                    if geom.geom_type == 'Polygon':
-                        x, y = geom.exterior.xy
-                        fig.add_trace(go.Scattermapbox(
-                            lat=list(y),
-                            lon=list(x),
-                            mode='lines',
-                            line=dict(width=1.5, color='rgba(124, 179, 66, 0.8)'),
-                            fill='toself',
-                            fillcolor='rgba(124, 179, 66, 0.12)',
-                            name='Massif Forestier',
-                            hovertemplate='<b>Massif Forestier</b><extra></extra>',
-                            showlegend=False
-                        ))
-                    elif geom.geom_type == 'MultiPolygon':
-                        for poly in geom.geoms:
-                            x, y = poly.exterior.xy
-                            fig.add_trace(go.Scattermapbox(
-                                lat=list(y),
-                                lon=list(x),
-                                mode='lines',
-                                line=dict(width=1.5, color='rgba(124, 179, 66, 0.8)'),
-                                fill='toself',
-                                fillcolor='rgba(124, 179, 66, 0.12)',
-                                name='Massif Forestier',
-                                hovertemplate='<b>Massif Forestier</b><extra></extra>',
-                                showlegend=False
-                            ))
-        except Exception as e:
-            print(f"Erreur lors du chargement du massif forestier: {e}")
     
     # Buffers pour chaque grand feu validé
     if analysis_results is not None and big_fires is not None and len(big_fires) > 0:
@@ -211,7 +157,7 @@ def create_map(df: pd.DataFrame, big_fires: pd.DataFrame = None,
                 mode='markers',
                 marker=dict(
                     size=20, 
-                    color='#FF0000', 
+                    color='#1E5A96', 
                     symbol='star'
                 ),
                 text=bf_communes,
@@ -237,7 +183,7 @@ def create_map(df: pd.DataFrame, big_fires: pd.DataFrame = None,
 def create_pie_chart(df: pd.DataFrame, title: str = "Répartition par catégorie") -> go.Figure:
     """Crée un graphique circulaire amélioré"""
     cat_counts = df['categorie'].value_counts()
-    colors = {'Petit feu': '#F1E6C9', 'Feu moyen': '#ABDADC', 'Grand feu': '#8B0000'}
+    colors = {'Petit feu': '#F1E6C9', 'Feu moyen': '#ABDADC', 'Grand feu': '#1E5A96'}
     
     fig = px.pie(
         values=cat_counts.values, 
@@ -254,7 +200,7 @@ def create_pie_chart(df: pd.DataFrame, title: str = "Répartition par catégorie
 def create_line_chart(df: pd.DataFrame, title: str = "Évolution annuelle") -> go.Figure:
     """Crée un graphique linéaire amélioré"""
     yearly = df.groupby(['annee', 'categorie']).size().reset_index(name='count')
-    colors = {'Petit feu': '#F1E6C9', 'Feu moyen': '#ABDADC', 'Grand feu': '#8B0000'}
+    colors = {'Petit feu': '#F1E6C9', 'Feu moyen': '#ABDADC', 'Grand feu': '#1E5A96'}
     
     fig = px.line(
         yearly, 
@@ -294,8 +240,8 @@ def create_trend_bar(df_filtered: pd.DataFrame, temporal_window: int) -> go.Figu
         y=petits_par_annee['Nombre'],
         name='Petits feux',
         mode='lines+markers',
-        line=dict(color='#FA891A', width=3),
-        marker=dict(size=10, color='#FA891A', line=dict(color='white', width=2))
+        line=dict(color='#2E8B9E', width=3),
+        marker=dict(size=10, color='#2E8B9E', line=dict(color='white', width=2))
     ))
     
     # Ligne pour les moyens feux
@@ -304,8 +250,8 @@ def create_trend_bar(df_filtered: pd.DataFrame, temporal_window: int) -> go.Figu
         y=moyens_par_annee['Nombre'],
         name='Moyens feux',
         mode='lines+markers',
-        line=dict(color='#8B0000', width=3),
-        marker=dict(size=10, color='#8B0000', line=dict(color='white', width=2))
+        line=dict(color='#1E5A96', width=3),
+        marker=dict(size=10, color='#1E5A96', line=dict(color='white', width=2))
     ))
     
     # Calculer la tendance globale (petits + moyens)
@@ -327,13 +273,13 @@ def create_trend_bar(df_filtered: pd.DataFrame, temporal_window: int) -> go.Figu
             y=p(x),
             name='Tendance globale',
             mode='lines',
-            line=dict(color='#8B0000', width=4, dash='dash'),
+            line=dict(color='#1E5A96', width=4, dash='dash'),
             showlegend=True
         ))
         
         # Déterminer si croissance ou décroissance
         tendance_text = "CROISSANCE" if z[0] > 0 else "DÉCROISSANCE"
-        tendance_color = '#FA891A' if z[0] > 0 else '#8B0000'
+        tendance_color = '#2E8B9E' if z[0] > 0 else '#1E5A96'
     else:
         tendance_text = "Données insuffisantes"
         tendance_color = '#95A5A6'
@@ -404,7 +350,7 @@ def create_scatter_plot(df_filtered: pd.DataFrame, commune: str, temporal_window
         
         if len(grands_feux) > 0:
             # Marquer les grands feux même sans petits feux
-            colors = ['#8B0000', '#8B0000', '#8B0000']
+            colors = ['#1E5A96', '#1E5A96', '#1E5A96']
             for idx, (_, grand_feu) in enumerate(grands_feux.iterrows()):
                 date_gf = grand_feu['date_alerte']
                 color_gf = colors[idx % len(colors)]
@@ -430,7 +376,7 @@ def create_scatter_plot(df_filtered: pd.DataFrame, commune: str, temporal_window
                 text=f"Aucun petit/moyen feu dans les fenêtres temporelles ({temporal_window} jours) avant les grands feux de {commune}<br>Seuls les grands feux sont affichés",
                 xref="paper", yref="paper",
                 x=0.5, y=0.5, showarrow=False,
-                font=dict(size=14, color='#8B0000')
+                font=dict(size=14, color='#1E5A96')
             )
         else:
             fig.add_annotation(
@@ -460,8 +406,8 @@ def create_scatter_plot(df_filtered: pd.DataFrame, commune: str, temporal_window
         y=feux_par_mois['Nombre'],
         name='Nombre de petits/moyens feux par mois',
         mode='lines+markers',
-        line=dict(color='#FA891A', width=3),
-        marker=dict(size=8, color='#FA891A', line=dict(color='white', width=2)),
+        line=dict(color='#2E8B9E', width=3),
+        marker=dict(size=8, color='#2E8B9E', line=dict(color='white', width=2)),
         fill='tozeroy',
         fillcolor='rgba(250, 137, 26, 0.2)',
         hovertemplate='<b>Petits/Moyens feux</b><br>Mois: %{x|%m/%Y}<br>Nombre: %{y}<extra></extra>'
@@ -481,10 +427,10 @@ def create_scatter_plot(df_filtered: pd.DataFrame, commune: str, temporal_window
         # Déterminer la tendance
         if z[0] > 0:
             tendance_text = "TENDANCE CROISSANTE"
-            tendance_color = '#FA891A'
+            tendance_color = '#2E8B9E'
         elif z[0] < 0:
             tendance_text = "TENDANCE DÉCROISSANTE"
-            tendance_color = '#8B0000'
+            tendance_color = '#1E5A96'
         else:
             tendance_text = "TENDANCE STABLE"
             tendance_color = '#ABDADC'
@@ -506,8 +452,8 @@ def create_scatter_plot(df_filtered: pd.DataFrame, commune: str, temporal_window
     # Marquer les grands feux
     if len(grands_feux) > 0:
         # Palette de couleurs pour les grands feux
-        colors = ['#8B0000', '#8B0000', '#8B0000', '#8B0000', '#8B0000', 
-                  '#8B0000', '#8B0000', '#8B0000', '#8B0000', '#8B0000']
+        colors = ['#1E5A96', '#1E5A96', '#1E5A96', '#1E5A96', '#1E5A96', 
+                  '#1E5A96', '#1E5A96', '#1E5A96', '#1E5A96', '#1E5A96']
         
         for idx, (_, grand_feu) in enumerate(grands_feux.iterrows()):
             date_gf = grand_feu['date_alerte']
@@ -615,7 +561,7 @@ def create_temporal_series(daily_counts: pd.DataFrame, fire_date: pd.Timestamp,
         name='Petits feux par jour',
         marker=dict(
             color='#F1E6C9',
-            line=dict(color='#FA891A', width=1)
+            line=dict(color='#2E8B9E', width=1)
         ),
         opacity=0.8,
         hovertemplate='<b>Date: %{x|%d/%m/%Y}</b><br>Feux ce jour: %{y}<extra></extra>'
@@ -627,8 +573,8 @@ def create_temporal_series(daily_counts: pd.DataFrame, fire_date: pd.Timestamp,
         y=daily_counts['Cumul'],
         name='Cumul total de feux',
         mode='lines+markers',
-        line=dict(color='#8B0000', width=4),
-        marker=dict(size=10, color='#8B0000', line=dict(color='white', width=2)),
+        line=dict(color='#1E5A96', width=4),
+        marker=dict(size=10, color='#1E5A96', line=dict(color='white', width=2)),
         hovertemplate='<b>Date: %{x|%d/%m/%Y}</b><br>Cumul: %{y} feux<extra></extra>'
     ))
     
@@ -636,14 +582,14 @@ def create_temporal_series(daily_counts: pd.DataFrame, fire_date: pd.Timestamp,
     fig.add_vline(
         x=fire_date.timestamp() * 1000,
         line_dash="dash",
-        line_color="#8B0000",
+        line_color="#1E5A96",
         line_width=3,
         annotation_text="GRAND FEU",
         annotation_position="top",
         annotation=dict(
-            font=dict(size=12, color='#8B0000', family='Arial Black'),
+            font=dict(size=12, color='#1E5A96', family='Arial Black'),
             bgcolor='rgba(255, 255, 255, 0.8)',
-            bordercolor='#8B0000',
+            bordercolor='#1E5A96',
             borderwidth=2
         )
     )
@@ -657,12 +603,12 @@ def create_temporal_series(daily_counts: pd.DataFrame, fire_date: pd.Timestamp,
         arrowhead=2,
         arrowsize=1,
         arrowwidth=2,
-        arrowcolor='#8B0000',
+        arrowcolor='#1E5A96',
         ax=-50,
         ay=-40,
-        font=dict(size=12, color='#8B0000', family='Arial Black'),
+        font=dict(size=12, color='#1E5A96', family='Arial Black'),
         bgcolor='rgba(255, 255, 255, 0.9)',
-        bordercolor='#8B0000',
+        bordercolor='#1E5A96',
         borderwidth=2
     )
     
@@ -676,7 +622,7 @@ def create_temporal_series(daily_counts: pd.DataFrame, fire_date: pd.Timestamp,
     fig.update_layout(
         title={
             'text': f"{titre_principal}<br><sub>Fenêtre d'analyse: {date_debut.strftime('%d/%m/%Y')} → {date_fin.strftime('%d/%m/%Y')} ({nb_jours} jours) | {total_feux} petits feux</sub>",
-            'font': {'size': 16, 'color': "#FF0000", 'family': 'Arial'}
+            'font': {'size': 16, 'color': "#1E5A96", 'family': 'Arial'}
         },
         xaxis=dict(
             title="<b>Date</b>",
@@ -754,7 +700,7 @@ def create_parameter_trends_chart(df_trends: pd.DataFrame, trends_summary: Dict,
         horizontal_spacing=0.08
     )
     
-    colors = ['#8B0000', '#FA891A', '#6E026F', '#ABDADC', '#2C3E50', '#27AE60', '#E74C3C', '#3498DB']
+    colors = ['#1E5A96', '#2E8B9E', '#4A7BA7', '#6B8FC4', '#5B7A99', '#3A6F89', '#2F7A8F', '#4A9B8E']
     
     for idx, param in enumerate(params):
         row = 1
@@ -897,7 +843,7 @@ def create_parameter_correlation_chart(correlations: Dict, commune: str) -> go.F
         name='Pearson (Linéaire)',
         x=params,
         y=pearson_vals,
-        marker=dict(color='#8B0000'),
+        marker=dict(color='#1E5A96'),
         hovertemplate='<b>%{x}</b><br>Pearson: %{y:.3f}<extra></extra>'
     ))
     
@@ -906,7 +852,7 @@ def create_parameter_correlation_chart(correlations: Dict, commune: str) -> go.F
         name='Spearman (Monotone)',
         x=params,
         y=spearman_vals,
-        marker=dict(color='#FA891A'),
+        marker=dict(color='#2E8B9E'),
         hovertemplate='<b>%{x}</b><br>Spearman: %{y:.3f}<extra></extra>'
     ))
     
@@ -915,7 +861,7 @@ def create_parameter_correlation_chart(correlations: Dict, commune: str) -> go.F
         name='Information Mutuelle',
         x=params,
         y=mi_vals,
-        marker=dict(color='#6E026F'),
+        marker=dict(color='#4A7BA7'),
         hovertemplate='<b>%{x}</b><br>MI: %{y:.3f}<extra></extra>'
     ))
     
@@ -1019,7 +965,7 @@ def create_global_parameter_correlation_chart(correlations: Dict, departement: s
         name='Pearson (Linéaire)',
         x=params,
         y=pearson_vals,
-        marker=dict(color='#8B0000'),
+        marker=dict(color='#1E5A96'),
         hovertemplate='<b>%{x}</b><br>Pearson: %{y:.3f}<extra></extra>'
     ))
     
@@ -1028,7 +974,7 @@ def create_global_parameter_correlation_chart(correlations: Dict, departement: s
         name='Spearman (Monotone)',
         x=params,
         y=spearman_vals,
-        marker=dict(color='#FA891A'),
+        marker=dict(color='#2E8B9E'),
         hovertemplate='<b>%{x}</b><br>Spearman: %{y:.3f}<extra></extra>'
     ))
     
@@ -1037,7 +983,7 @@ def create_global_parameter_correlation_chart(correlations: Dict, departement: s
         name='Information Mutuelle',
         x=params,
         y=mi_vals,
-        marker=dict(color='#6E026F'),
+        marker=dict(color='#4A7BA7'),
         hovertemplate='<b>%{x}</b><br>MI: %{y:.3f}<extra></extra>'
     ))
     
@@ -1096,7 +1042,7 @@ def create_global_parameter_correlation_chart(correlations: Dict, departement: s
 
 def create_commune_chart(commune_pivot_top: pd.DataFrame) -> go.Figure:
     """Crée un graphique empilé par commune"""
-    colors = {'Petit feu': '#F1E6C9', 'Feu moyen': '#ABDADC', 'Grand feu': '#8B0000'}
+    colors = {'Petit feu': '#F1E6C9', 'Feu moyen': '#ABDADC', 'Grand feu': '#1E5A96'}
     
     fig = px.bar(
         commune_pivot_top.reset_index(), 
@@ -1144,7 +1090,7 @@ def create_commune_evolution(df: pd.DataFrame, commune: str) -> go.Figure:
     # Comptage par année et catégorie
     yearly = df_commune.groupby(['annee', 'categorie']).size().reset_index(name='count')
     
-    colors = {'Petit feu': '#F1E6C9', 'Feu moyen': '#ABDADC', 'Grand feu': '#8B0000'}
+    colors = {'Petit feu': '#F1E6C9', 'Feu moyen': '#ABDADC', 'Grand feu': '#1E5A96'}
     
     fig = go.Figure()
     
@@ -1208,9 +1154,9 @@ def create_heatmap_calendar(daily_counts: pd.DataFrame, fire_date: pd.Timestamp,
             [0, '#FFFFFF'],      # Blanc pour 0
             [0.2, '#F1E6C9'],    # Beige très pâle
             [0.4, '#ABDADC'],    # Bleu clair
-            [0.6, '#FA891A'],    # Orange
-            [0.8, '#8B0000'],    # Rouge clair
-            [1.0, '#8B0000']     # Rouge foncé
+            [0.6, '#2E8B9E'],    # Orange
+            [0.8, '#1E5A96'],    # Rouge clair
+            [1.0, '#1E5A96']     # Rouge foncé
         ],
         hoverongaps=False,
         hovertemplate='<b>%{y}</b> (Semaine %{x})<br>Feux: %{z}<extra></extra>',
@@ -1272,11 +1218,11 @@ def create_risk_gauges(daily_counts: pd.DataFrame, fire_date: pd.Timestamp, comm
     for i, periode in enumerate(periodes):
         # Couleur selon niveau
         if periode['feux'] < max_feux * 0.3:
-            color = '#FA891A'  # Orange
+            color = '#2E8B9E'  # Orange
         elif periode['feux'] < max_feux * 0.6:
             color = '#ABDADC'  # Bleu clair
         else:
-            color = '#8B0000'  # Rouge
+            color = '#1E5A96'  # Rouge
         
         fig.add_trace(go.Indicator(
             mode="gauge+number",
@@ -1325,8 +1271,8 @@ def create_hourly_distribution(small_fires_df: pd.DataFrame, commune: str) -> go
         theta=hourly_counts['heure'] * 15,  # Convertir en degrés (24h = 360°)
         fill='toself',
         fillcolor='rgba(255, 99, 71, 0.3)',
-        line=dict(color='#8B0000', width=4),
-        marker=dict(size=10, color='#8B0000', line=dict(color='white', width=2)),
+        line=dict(color='#1E5A96', width=4),
+        marker=dict(size=10, color='#1E5A96', line=dict(color='white', width=2)),
         name='Nombre de feux',
         hovertemplate='<b>%{theta}°</b> (Heure: %{text})<br>Feux: %{r}<extra></extra>',
         text=[f'{h}h' for h in hourly_counts['heure']]
@@ -1381,7 +1327,7 @@ def create_acceleration_chart(daily_counts: pd.DataFrame, fire_date: pd.Timestam
     fig = go.Figure()
     
     # Colorier selon accélération/décélération
-    colors = ['#FA891A' if v <= 0 else '#8B0000' for v in vitesse_df['vitesse']]
+    colors = ['#2E8B9E' if v <= 0 else '#1E5A96' for v in vitesse_df['vitesse']]
     
     fig.add_trace(go.Bar(
         x=vitesse_df['date'],
@@ -1398,7 +1344,7 @@ def create_acceleration_chart(daily_counts: pd.DataFrame, fire_date: pd.Timestam
     fig.add_vline(
         x=fire_date.timestamp() * 1000,
         line_dash="dash",
-        line_color="#8B0000",
+        line_color="#1E5A96",
         line_width=3,
         annotation_text="GRAND FEU"
     )
@@ -1430,12 +1376,28 @@ def create_multi_fire_comparison(analysis_results: list, big_fires: pd.DataFrame
         specs=[[{"secondary_y": True}]]
     )
     
-    # Palette de couleurs basée sur le thème du projet
+    # Palette diversifiée avec contraste : Couleurs vives et saturées
     colors = [
-        '#8B0000', '#8B0000', '#8B0000', '#8B0000', '#8B0000',  # Rouges foncés
-        '#FA891A', '#FA891A', '#FA891A', '#FA891A', '#FA891A',  # Oranges
-        '#ABDADC', '#ABDADC', '#ABDADC', '#ABDADC', '#ABDADC',  # Bleus clairs
-        '#F1E6C9', '#F1E6C9', '#F1E6C9', '#F1E6C9', '#F1E6C9'   # Beiges clairs
+        '#0052CC',  # Bleu vif
+        '#00A4EF',  # Cyan lumineux
+        '#20B2AA',  # Teal clair
+        '#FF6B35',  # Orange vif
+        '#F72585',  # Rose magenta
+        '#00D4FF',  # Cyan électrique
+        '#7209B7',  # Pourpre vibrant
+        '#FF4136',  # Rouge criard
+        '#2ECC40',  # Vert émeraude
+        '#FFDC00',  # Jaune doré
+        '#0074D9',  # Bleu cobalt
+        '#FF851B',  # Orange saturé
+        '#39CCCC',  # Teal éclatant
+        '#B10DC9',  # Violet intense
+        '#01FF70',  # Vert lime
+        '#FF1493',  # Rose deep
+        '#1E90FF',  # Dodger blue
+        '#FFD700',  # Or pur
+        '#00CED1',  # Turquoise vif
+        '#FF6347'   # Tomate vive
     ]
     
     # Filtrer les feux valides
@@ -1505,11 +1467,11 @@ def create_multi_fire_comparison(analysis_results: list, big_fires: pd.DataFrame
     
     # Ajouter les courbes moyennes des paramètres environnementaux
     param_colors = {
-        'mean_NDVI': '#2ECC40',  # Vert pour végétation
-        'T': '#FF4136',          # Rouge pour température
-        'PRELIQ': '#0074D9',     # Bleu pour précipitations
-        'HU': '#7FDBFF',         # Bleu clair pour humidité
-        'FF': '#B10DC9'          # Violet pour vent
+        'mean_NDVI': '#2E8B9E',      # Teal pour végétation
+        'T': '#1E5A96',              # Bleu primaire pour température
+        'PRELIQ': '#4A7BA7',         # Bleu secondaire pour précipitations
+        'HU': '#6B8FC4',             # Bleu clair pour humidité
+        'FF': '#5B7A99'              # Bleu grisé pour vent
     }
     
     all_days = list(range(-max_days, 1))
@@ -1566,14 +1528,14 @@ def create_multi_fire_comparison(analysis_results: list, big_fires: pd.DataFrame
     fig.add_vline(
         x=0, 
         line_dash="solid", 
-        line_color="#8B0000", 
+        line_color="#1E5A96", 
         line_width=4,
         annotation_text="J-0",
         annotation_position="top",
         annotation=dict(
-            font=dict(size=12, color='#8B0000', family='Arial Black'),
+            font=dict(size=12, color='#1E5A96', family='Arial Black'),
             bgcolor='rgba(255, 255, 255, 0.9)',
-            bordercolor='#8B0000',
+            bordercolor='#1E5A96',
             borderwidth=2
         )
     )
@@ -1730,7 +1692,7 @@ def create_detail_fire_map(big_fire: pd.Series, small_medium_fires: pd.DataFrame
         mode='markers',
         marker=dict(
             size=28, 
-            color='#FF0000', 
+            color='#1E5A96', 
             symbol='star'
         ),
         name='Grand feu',
@@ -1958,7 +1920,7 @@ def create_correlation_analysis_figure(df: pd.DataFrame) -> go.Figure:
         pvals_gc = list(p_values_gc.values())
         
         # Afficher seulement la p-value minimale (meilleure) sous forme d'indicateur
-        color_gc = '#FA891A' if min_p_gc < 0.05 else '#8B0000'
+        color_gc = '#2E8B9E' if min_p_gc < 0.05 else '#1E5A96'
         
         fig.add_trace(
             go.Indicator(
@@ -2227,7 +2189,7 @@ def create_communes_croissance_map(big_fires: pd.DataFrame, analysis_results: Li
             marker=dict(
                 size=sizes,
                 color=totaux,
-                colorscale=[[0, '#FF6B00'], [0.5, '#FF0000'], [1, '#8B0000']],
+                colorscale=[[0, '#FF6B35'], [0.25, '#FFA500'], [0.5, '#FFD700'], [0.75, '#20B2AA'], [1, '#1E5A96']],
                 cmin=min(totaux),
                 cmax=max(totaux),
                 colorbar=dict(
@@ -2282,5 +2244,201 @@ def create_communes_croissance_map(big_fires: pd.DataFrame, analysis_results: Li
                 font=dict(size=14, color='#333333')
             )
         )
+    
+    return fig
+
+
+def create_comprehensive_fire_analysis(small_fires_df: pd.DataFrame, commune: str, fire_date: pd.Timestamp) -> go.Figure:
+    """
+    Crée un diagramme complet et unique montrant tous les paramètres ensemble:
+    - X: Date des petits feux
+    - Y primaire (gauche): Nombre de petits feux par jour (barres)
+    - Y secondaire (droite): Tous les paramètres environnementaux (lignes colorées)
+      * NDVI (vert)
+      * Température (rouge)
+      * Humidité (bleu)
+      * Vent (violet)
+      * Précipitations (orange)
+    
+    Args:
+        small_fires_df: DataFrame des petits feux avant le grand feu
+        commune: Nom de la commune
+        fire_date: Date du grand feu
+    
+    Returns:
+        Figure Plotly avec tous les paramètres ensemble
+    """
+    if len(small_fires_df) == 0:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Aucune donnée disponible",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=16)
+        )
+        return fig
+    
+    # Filtrer et préparer les données
+    df_clean = small_fires_df[['date_alerte', 'surface_ha', 'mean_NDVI', 'T', 'PRELIQ', 'HU', 'FF']].copy()
+    df_clean['date_only'] = pd.to_datetime(df_clean['date_alerte']).dt.date
+    
+    # Grouper par date pour obtenir le nombre de feux par jour et les moyennes des paramètres
+    daily_stats = df_clean.groupby('date_only').agg({
+        'surface_ha': ['count', 'sum', 'mean'],
+        'mean_NDVI': 'mean',
+        'T': 'mean',
+        'PRELIQ': 'mean',
+        'HU': 'mean',
+        'FF': 'mean'
+    }).reset_index()
+    
+    # Aplatir les colonnes multi-index
+    daily_stats.columns = ['date_only', 'nb_feux', 'total_surface', 'mean_surface', 'ndvi', 'temp', 'precip', 'humidite', 'vent']
+    daily_stats['date_only'] = pd.to_datetime(daily_stats['date_only'])
+    daily_stats = daily_stats.sort_values('date_only')
+    
+    # Créer la figure avec axes secondaires
+    fig = go.Figure()
+    
+    # Couleurs pour les paramètres
+    param_colors = {
+        'temp': '#FF4136',      # Rouge
+        'humidite': '#0074D9',  # Bleu
+        'vent': '#B10DC9',      # Violet
+        'nb_feux': '#FA891A'    # Orange
+    }
+    
+    param_names = {
+        'temp': 'Température (°C)',
+        'humidite': 'Humidité (%)',
+        'vent': 'Vent (m/s)',
+        'nb_feux': 'Nombre de Petits Feux'
+    }
+    
+    # Styles de ligne
+    dash_styles = {
+        'temp': 'solid',
+        'humidite': 'dash',
+        'vent': 'dashdot',
+        'nb_feux': 'longdash'
+    }
+    
+    # Ajouter tous les paramètres comme lignes
+    for param in ['temp', 'humidite', 'vent', 'nb_feux']:
+        fig.add_trace(go.Scatter(
+            x=daily_stats['date_only'],
+            y=daily_stats[param] if param != 'nb_feux' else daily_stats['nb_feux'],
+            name=param_names[param],
+            mode='lines+markers',
+            line=dict(
+                color=param_colors[param],
+                width=4 if param == 'nb_feux' else 3.5,
+                dash=dash_styles[param]
+            ),
+            marker=dict(
+                size=10 if param == 'nb_feux' else 8,
+                line=dict(color='white', width=2.5),
+                opacity=0.9,
+                symbol='diamond' if param == 'nb_feux' else 'circle'
+            ),
+            yaxis='y1',
+            hovertemplate=f'<b>{param_names[param]}</b><br>Date: %{{x|%d/%m/%Y}}<br>Valeur: %{{y:.2f}}<extra></extra>',
+            showlegend=True
+        ))
+    
+    # Ligne verticale pour le grand feu
+    fig.add_vline(
+        x=fire_date.timestamp() * 1000,
+        line_dash="solid",
+        line_color="#8B0000",
+        line_width=5,
+        annotation_text="GRAND FEU",
+        annotation_position="top",
+        annotation=dict(
+            font=dict(size=13, color='white', family='Arial Black'),
+            bgcolor='#8B0000',
+            bordercolor='#FF0000',
+            borderwidth=2,
+            showarrow=True,
+            arrowsize=2,
+            arrowwidth=3,
+            arrowcolor='#8B0000'
+        )
+    )
+    
+    # Annotations pour les noms des paramètres
+    last_x = daily_stats['date_only'].iloc[-1]
+    
+    for param in ['temp', 'humidite', 'vent', 'nb_feux']:
+        last_y = daily_stats[param].iloc[-1]
+        fig.add_annotation(
+            x=last_x,
+            y=last_y,
+            text=f"<b>{param_names[param].split('(')[0].strip()}</b>",
+            showarrow=True,
+            arrowhead=2,
+            arrowsize=1,
+            arrowwidth=1.5,
+            arrowcolor=param_colors[param],
+            ax=40,
+            ay=-20,
+            font=dict(size=11, color=param_colors[param], family='Arial Black'),
+            bgcolor='rgba(255, 255, 255, 0.9)',
+            bordercolor=param_colors[param],
+            borderwidth=1.5,
+            borderpad=4,
+            xanchor='left',
+            yanchor='bottom'
+        )
+    
+    # Configuration du layout
+    fig.update_layout(
+        title={
+            'text': f"<b>ANALYSE MÉTÉOROLOGIQUE - Petits Feux & Paramètres Clés</b><br><sub>{commune} | Température • Humidité • Vent</sub>",
+            'font': {'size': 18, 'color': '#1a1a1a', 'family': 'Arial Black'},
+            'x': 0.5,
+            'xanchor': 'center'
+        },
+        height=800,
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.15,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=10, family='Arial'),
+            bgcolor='rgba(255, 255, 255, 0.95)',
+            bordercolor='#CCCCCC',
+            borderwidth=1
+        ),
+        plot_bgcolor='rgba(250, 250, 252, 0.9)',
+        paper_bgcolor='white',
+        font=dict(family='Arial', size=11, color='#333333'),
+        hovermode='x unified',
+        margin=dict(l=100, r=200, t=160, b=150),
+        xaxis=dict(
+            title="<b>Date</b>",
+            showgrid=True,
+            gridcolor='rgba(200, 200, 200, 0.2)',
+            gridwidth=1,
+            tickformat='%d/%m/%Y',
+            showline=True,
+            linewidth=2,
+            linecolor='#CCCCCC',
+            mirror=True
+        ),
+        yaxis=dict(
+            title="<b>Tous les Paramètres</b><br><sub>(Feux • Temp • Humidité • Vent)</sub>",
+            showgrid=True,
+            gridcolor='rgba(200, 200, 200, 0.2)',
+            gridwidth=1.5,
+            showline=True,
+            linewidth=2,
+            linecolor='#333333',
+            titlefont=dict(color='#333333', size=12, family='Arial Black'),
+            dtick=5
+        )
+    )
     
     return fig
