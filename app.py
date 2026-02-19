@@ -403,7 +403,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("<h3 style='color: #FFFFFF;'>�️ Département</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #FFFFFF;'>Département</h3>", unsafe_allow_html=True)
         departements_disponibles = sorted(df['depart'].dropna().astype(str).unique())
         departements_options = ["Tous"] + list(departements_disponibles)
         selected_dept_main = st.selectbox(
