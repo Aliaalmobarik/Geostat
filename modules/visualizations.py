@@ -102,6 +102,62 @@ def create_map(df: pd.DataFrame, big_fires: pd.DataFrame = None,
         except Exception as e:
             print(f"Erreur lors du chargement du contour Prométhée: {e}")
     
+    # Charger et afficher le massif forestier
+    if HAS_GEOPANDAS:
+        try:
+            massif_parquet_path = 'data/L_MASSIFS_FORESTIERS_S_013.parquet'
+            massif_shp_paths = [
+                'data/massif/L_MASSIFS_FORESTIERS_S_013.shp',
+                'data/L_MASSIFS_FORESTIERS_S_013.shp'
+            ]
+
+            gdf_massif = None
+            if os.path.exists(massif_parquet_path):
+                gdf_massif = gpd.read_parquet(massif_parquet_path)
+            else:
+                for massif_path in massif_shp_paths:
+                    if os.path.exists(massif_path):
+                        gdf_massif = gpd.read_file(massif_path)
+                        break
+
+            if gdf_massif is not None:
+                
+                # Convertir en WGS84 si nécessaire
+                if gdf_massif.crs is not None and gdf_massif.crs.to_string() != 'EPSG:4326':
+                    gdf_massif = gdf_massif.to_crs('EPSG:4326')
+                
+                # Parcourir toutes les géométries du massif
+                for geom in gdf_massif.geometry:
+                    if geom.geom_type == 'Polygon':
+                        x, y = geom.exterior.xy
+                        fig.add_trace(go.Scattermapbox(
+                            lat=list(y),
+                            lon=list(x),
+                            mode='lines',
+                            line=dict(width=1.5, color='rgba(124, 179, 66, 0.8)'),
+                            fill='toself',
+                            fillcolor='rgba(124, 179, 66, 0.12)',
+                            name='Massif Forestier',
+                            hovertemplate='<b>Massif Forestier</b><extra></extra>',
+                            showlegend=False
+                        ))
+                    elif geom.geom_type == 'MultiPolygon':
+                        for poly in geom.geoms:
+                            x, y = poly.exterior.xy
+                            fig.add_trace(go.Scattermapbox(
+                                lat=list(y),
+                                lon=list(x),
+                                mode='lines',
+                                line=dict(width=1.5, color='rgba(124, 179, 66, 0.8)'),
+                                fill='toself',
+                                fillcolor='rgba(124, 179, 66, 0.12)',
+                                name='Massif Forestier',
+                                hovertemplate='<b>Massif Forestier</b><extra></extra>',
+                                showlegend=False
+                            ))
+        except Exception as e:
+            print(f"Erreur lors du chargement du massif forestier: {e}")
+    
     # Buffers pour chaque grand feu validé
     if analysis_results is not None and big_fires is not None and len(big_fires) > 0:
         for idx, result in enumerate(analysis_results):
@@ -686,11 +742,16 @@ def create_parameter_trends_chart(df_trends: pd.DataFrame, trends_summary: Dict,
         return fig
     
     # Créer subplots (1 ligne, n_params colonnes)
+    subplot_titles = [
+        PARAM_NAMES.get(param, param).replace(" (", "<br>(")
+        for param in params
+    ]
+
     fig = make_subplots(
         rows=1, 
         cols=n_params,
-        subplot_titles=[PARAM_NAMES.get(param, param) for param in params],
-        horizontal_spacing=0.05
+        subplot_titles=subplot_titles,
+        horizontal_spacing=0.08
     )
     
     colors = ['#8B0000', '#FA891A', '#6E026F', '#ABDADC', '#2C3E50', '#27AE60', '#E74C3C', '#3498DB']
@@ -772,7 +833,8 @@ def create_parameter_trends_chart(df_trends: pd.DataFrame, trends_summary: Dict,
             'text': f"Tendances des Paramètres Environnementaux - {commune}<br><sub>Évolution avant le grand feu (par période)</sub>",
             'font': {'size': 16, 'color': '#2C3E50', 'family': 'Arial'}
         },
-        height=400,
+        height=460,
+        margin=dict(l=20, r=20, t=135, b=40),
         plot_bgcolor='rgba(248, 248, 248, 0.8)',
         paper_bgcolor='white',
         font=dict(family='Arial', size=11),
